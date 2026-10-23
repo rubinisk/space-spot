@@ -24,7 +24,12 @@ import {
 
 import { 
   collection, 
-  onSnapshot 
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // DOM Elements
@@ -79,6 +84,9 @@ function initStudentApp() {
 
   // Bind filter change events
   setupEventListeners();
+
+  // Bind DBMS Query & Index Inspector
+  initDbmsInspector();
 
   // Initialize real-time collection listener (Index-free architecture)
   initRealtimeClassrooms();
@@ -739,4 +747,281 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+
+// ==============================================================================
+// CLOUD FIRESTORE SERVER-SIDE QUERY & INDEX INSPECTOR
+// ==============================================================================
+function initDbmsInspector() {
+  const modal = document.getElementById("dbms-inspector-modal");
+  const btnOpen = document.getElementById("btn-open-dbms-modal");
+  const btnClose = document.getElementById("btn-close-dbms-modal");
+  const btnCloseFooter = document.getElementById("btn-close-dbms-modal-footer");
+  const btnExecute = document.getElementById("btn-execute-dbms-query");
+  const presetButtons = document.querySelectorAll("#dbms-query-presets button");
+  const customControls = document.getElementById("dbms-custom-controls");
+  const codeDisplay = document.getElementById("dbms-code-display");
+  const execStatus = document.getElementById("dbms-execution-status");
+  const metricsRow = document.getElementById("dbms-metrics-row");
+  const metricTime = document.getElementById("dbms-metric-time");
+  const metricCount = document.getElementById("dbms-metric-count");
+  const metricIndex = document.getElementById("dbms-metric-index");
+  const metricConsistency = document.getElementById("dbms-metric-consistency");
+  const resultsWrapper = document.getElementById("dbms-results-wrapper");
+  const resultsBadge = document.getElementById("dbms-results-badge");
+  const resultsTbody = document.getElementById("dbms-results-tbody");
+
+  // Custom Param Inputs
+  const paramBlock = document.getElementById("dbms-param-block");
+  const paramCapacity = document.getElementById("dbms-param-capacity");
+  const paramSort = document.getElementById("dbms-param-sort");
+  const paramLimit = document.getElementById("dbms-param-limit");
+
+  if (!modal || !btnOpen) return;
+
+  let currentPreset = "preset1";
+
+  function openModal() {
+    modal.classList.add("active");
+    document.body.style.overflow = "hidden";
+    updateCodeDisplay();
+  }
+
+  function closeModal() {
+    modal.classList.remove("active");
+    document.body.style.overflow = "";
+  }
+
+  btnOpen.addEventListener("click", openModal);
+  if (btnClose) btnClose.addEventListener("click", closeModal);
+  if (btnCloseFooter) btnCloseFooter.addEventListener("click", closeModal);
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  // Preset switching
+  presetButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      presetButtons.forEach((b) => b.classList.remove("active-preset"));
+      btn.classList.add("active-preset");
+      currentPreset = btn.getAttribute("data-preset");
+
+      if (currentPreset === "custom") {
+        customControls.style.display = "block";
+      } else {
+        customControls.style.display = "none";
+      }
+
+      updateCodeDisplay();
+    });
+  });
+
+  // Listeners on custom controls to update code preview in real-time
+  [paramBlock, paramCapacity, paramSort, paramLimit].forEach((el) => {
+    if (el) {
+      el.addEventListener("change", () => {
+        if (currentPreset === "custom") {
+          updateCodeDisplay();
+        }
+      });
+    }
+  });
+
+  function getQueryConfig() {
+    if (currentPreset === "preset1") {
+      return {
+        block: "A",
+        minCapacity: null,
+        sort: "none",
+        limitVal: 20,
+        indexType: "Single-Field B-Tree (Ascending)",
+        desc: "Single-field equality query evaluated via B-Tree index on 'block'."
+      };
+    } else if (currentPreset === "preset2") {
+      return {
+        block: null,
+        minCapacity: 60,
+        sort: "capacity_asc",
+        limitVal: 20,
+        indexType: "Single-Field Ordered Index",
+        desc: "Range inequality filter and ordering aligned on same field ('capacity')."
+      };
+    } else if (currentPreset === "preset3") {
+      return {
+        block: "A",
+        minCapacity: 50,
+        sort: "none",
+        limitVal: 20,
+        indexType: "Zig-Zag Merge Join",
+        desc: "Compound filter merging single-field B-Tree indexes for 'block' and 'capacity'."
+      };
+    } else {
+      // Custom
+      const block = paramBlock.value === "ALL" ? null : paramBlock.value;
+      const minCapacity = parseInt(paramCapacity.value, 10) || null;
+      const sort = paramSort.value;
+      const limitVal = parseInt(paramLimit.value, 10) || 20;
+      let indexType = "Single-Field B-Tree";
+      if (block && minCapacity && (sort === "capacity_asc" || sort === "capacity_desc")) {
+        indexType = "Composite Index (block, capacity)";
+      } else if (block && minCapacity) {
+        indexType = "Zig-Zag Merge Join";
+      } else if (sort !== "none") {
+        indexType = "Single-Field Ordered Index";
+      }
+      return {
+        block,
+        minCapacity,
+        sort,
+        limitVal,
+        indexType,
+        desc: "Custom user-defined server-side query."
+      };
+    }
+  }
+
+  function updateCodeDisplay() {
+    const config = getQueryConfig();
+    const clauses = ['collection(db, "classrooms")'];
+
+    if (config.block) {
+      clauses.push(`where("block", "==", "${config.block}")`);
+    }
+    if (config.minCapacity !== null && config.minCapacity > 0) {
+      clauses.push(`where("capacity", ">=", ${config.minCapacity})`);
+    }
+    if (config.sort === "capacity_asc") {
+      clauses.push(`orderBy("capacity", "asc")`);
+    } else if (config.sort === "capacity_desc") {
+      clauses.push(`orderBy("capacity", "desc")`);
+    } else if (config.sort === "name_asc") {
+      clauses.push(`orderBy("name", "asc")`);
+    }
+    if (config.limitVal) {
+      clauses.push(`limit(${config.limitVal})`);
+    }
+
+    const code = `// Cloud Firestore Server-Side Execution
+import { db } from "./firebase-config.js";
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+
+// 1. Construct Server Query with Automated Indexing
+const q = query(
+  ${clauses.join(',\n  ')}
+);
+
+// 2. Dispatch to Google Spanner via gRPC / HTTPS
+const querySnapshot = await getDocs(q);
+
+// 3. Process Result Set ($O(k)$ where k = document count)
+querySnapshot.forEach((doc) => {
+  console.log(doc.id, "=>", doc.data());
+});`;
+
+    codeDisplay.textContent = code;
+  }
+
+  // Live Query Execution
+  btnExecute.addEventListener("click", async () => {
+    const config = getQueryConfig();
+    btnExecute.disabled = true;
+    execStatus.innerHTML = `<span style="color:var(--primary); font-weight:700;">Querying Google Cloud Firestore Server...</span>`;
+
+    try {
+      const constraints = [];
+      if (config.block) {
+        constraints.push(where("block", "==", config.block));
+      }
+      if (config.minCapacity !== null && config.minCapacity > 0) {
+        constraints.push(where("capacity", ">=", config.minCapacity));
+      }
+      if (config.sort === "capacity_asc") {
+        constraints.push(orderBy("capacity", "asc"));
+      } else if (config.sort === "capacity_desc") {
+        constraints.push(orderBy("capacity", "desc"));
+      } else if (config.sort === "name_asc") {
+        constraints.push(orderBy("name", "asc"));
+      }
+      if (config.limitVal) {
+        constraints.push(limit(config.limitVal));
+      }
+
+      const q = query(collection(db, "classrooms"), ...constraints);
+
+      // Web Performance API: High-precision timestamp measurement
+      const t0 = performance.now();
+      const snapshot = await getDocs(q);
+      const t1 = performance.now();
+      const latencyMs = (t1 - t0).toFixed(1);
+
+      // Update Metrics
+      metricsRow.style.display = "grid";
+      metricTime.textContent = `${latencyMs} ms`;
+      metricCount.textContent = `${snapshot.size} rooms`;
+      metricIndex.textContent = config.indexType;
+      metricConsistency.textContent = "Strong (Spanner)";
+
+      execStatus.innerHTML = `<span style="color:#059669; font-weight:700;">Query succeeded in ${latencyMs} ms (${snapshot.size} docs returned)</span>`;
+
+      // Render Results Table
+      resultsWrapper.style.display = "block";
+      resultsBadge.textContent = `${snapshot.size} Documents Fetched`;
+
+      if (snapshot.empty) {
+        resultsTbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No documents match the specified server query.</td></tr>`;
+      } else {
+        let rowsHtml = "";
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data();
+          const facilitiesList = Array.isArray(d.facilities) ? d.facilities.join(", ") : "-";
+          rowsHtml += `
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 0.5rem 0.75rem; font-weight: 700; color: var(--primary);">${escapeHtml(d.name || docSnap.id)}</td>
+              <td style="padding: 0.5rem 0.75rem;">Block ${escapeHtml(d.block || "-")}</td>
+              <td style="padding: 0.5rem 0.75rem;">Floor ${d.floor !== undefined ? d.floor : "-"}</td>
+              <td style="padding: 0.5rem 0.75rem; text-transform: capitalize;">${escapeHtml(d.type || "classroom")}</td>
+              <td style="padding: 0.5rem 0.75rem; font-weight: 600;">${d.capacity || 0} seats</td>
+              <td style="padding: 0.5rem 0.75rem; color: var(--text-muted); font-size: 0.75rem;">${escapeHtml(facilitiesList)}</td>
+            </tr>
+          `;
+        });
+        resultsTbody.innerHTML = rowsHtml;
+      }
+    } catch (err) {
+      console.error("DBMS Server Query Error:", err);
+      const errMsg = err.message || err.toString();
+      const indexMatch = errMsg.match(/https:\/\/console\.firebase\.google\.com[^\s)]+/);
+
+      metricsRow.style.display = "grid";
+      metricTime.textContent = "Error";
+      metricCount.textContent = "0";
+      metricIndex.textContent = indexMatch ? "Composite Required" : "Error";
+      metricConsistency.textContent = "Failed";
+
+      if (indexMatch) {
+        execStatus.innerHTML = `<span style="color:#dc2626; font-weight:700;">Firestore Composite Index Required!</span>`;
+        resultsWrapper.style.display = "block";
+        resultsBadge.textContent = "Index Required";
+        resultsTbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="padding:1rem; color:#991b1b; background:#fef2f2;">
+              <strong>Google Cloud Index Requirement Detected:</strong>
+              <p style="margin: 0.4rem 0;">This query combines equality filters with inequality sorting across multiple fields. Cloud Firestore strictly requires a Composite Index for this pattern to guarantee $O(k)$ latency.</p>
+              <a href="${indexMatch[0]}" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:700; text-decoration:underline;">
+                Click here to build this Composite Index in Firebase Console &rarr;
+              </a>
+            </td>
+          </tr>
+        `;
+      } else {
+        execStatus.innerHTML = `<span style="color:#dc2626; font-weight:700;">Error: ${escapeHtml(errMsg)}</span>`;
+      }
+    } finally {
+      btnExecute.disabled = false;
+    }
+  });
+
+  // Initial code display
+  updateCodeDisplay();
 }

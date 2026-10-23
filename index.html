@@ -198,9 +198,15 @@
         <div class="filter-title">
           <span>Find Available Classrooms</span>
         </div>
-        <button id="btn-reset-filters" class="btn btn-ghost btn-sm" type="button">
-          Reset Filters
-        </button>
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <button id="btn-open-dbms-modal" class="btn btn-primary btn-sm" type="button" style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; background: var(--primary);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            DBMS Query &amp; Index Inspector
+          </button>
+          <button id="btn-reset-filters" class="btn btn-ghost btn-sm" type="button">
+            Reset Filters
+          </button>
+        </div>
       </div>
 
       <form id="filter-form" class="filter-grid" onsubmit="event.preventDefault();">
@@ -308,6 +314,186 @@
         </a>
       </div>
     </section>
+
+    <!-- DBMS Query & Index Inspector Modal (For Evaluator Demonstration) -->
+    <div id="dbms-inspector-modal" class="modal-overlay">
+      <div class="modal-dialog modal-dialog-large">
+        <div class="modal-header" style="background: var(--bg-subtle);">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 2.25rem; height: 2.25rem; border-radius: var(--radius-md); background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            </div>
+            <div>
+              <h3 style="font-size: 1.15rem; color: var(--text-main); margin: 0;">Cloud Firestore Query &amp; Index Inspector</h3>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Live hands-on DBMS evaluation: query(), where(), orderBy(), and indexing metrics</p>
+            </div>
+          </div>
+          <button id="btn-close-dbms-modal" class="modal-close" aria-label="Close Inspector">&times;</button>
+        </div>
+
+        <div class="modal-body" style="gap: 1.25rem;">
+          <!-- Query Preset Selector -->
+          <div>
+            <label style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">
+              Select Query Demonstration Preset:
+            </label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;" id="dbms-query-presets">
+              <button type="button" class="btn btn-outline btn-sm active-preset" data-preset="preset1" style="text-align: left; padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
+                <div style="font-weight: 700; font-size: 0.825rem;">Preset 1: Single-Field Equality</div>
+                <div style="font-size: 0.725rem; color: var(--text-muted);">where("block", "==", "A") &bull; Single-Field B-Tree Index</div>
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" data-preset="preset2" style="text-align: left; padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
+                <div style="font-weight: 700; font-size: 0.825rem;">Preset 2: Range &amp; Sorting</div>
+                <div style="font-size: 0.725rem; color: var(--text-muted);">where("capacity", "&gt;=", 60) + orderBy &bull; Ordered Index</div>
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" data-preset="preset3" style="text-align: left; padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
+                <div style="font-weight: 700; font-size: 0.825rem;">Preset 3: Compound Filter</div>
+                <div style="font-size: 0.725rem; color: var(--text-muted);">where("block", "==", "A") + where("capacity", "&gt;=", 50)</div>
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" data-preset="custom" style="text-align: left; padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
+                <div style="font-weight: 700; font-size: 0.825rem;">Preset 4: Interactive Custom</div>
+                <div style="font-size: 0.725rem; color: var(--text-muted);">Select custom Block, Min Capacity &amp; Order</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom Controls (Hidden unless 'custom' is active or user tweaks) -->
+          <div id="dbms-custom-controls" style="display: none; background: var(--bg-subtle); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border);">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">
+              <div>
+                <label for="dbms-param-block" style="font-size: 0.75rem; font-weight: 600; color: var(--text-main);">Block Filter</label>
+                <select id="dbms-param-block" class="form-control" style="font-size: 0.825rem; padding: 0.35rem 0.5rem;">
+                  <option value="A">Block A</option>
+                  <option value="C">Block C</option>
+                  <option value="D">Block D</option>
+                  <option value="F">Block F</option>
+                  <option value="ALL">All Blocks</option>
+                </select>
+              </div>
+              <div>
+                <label for="dbms-param-capacity" style="font-size: 0.75rem; font-weight: 600; color: var(--text-main);">Min Capacity (&gt;=)</label>
+                <select id="dbms-param-capacity" class="form-control" style="font-size: 0.825rem; padding: 0.35rem 0.5rem;">
+                  <option value="0">Any (0+)</option>
+                  <option value="40">40+ seats</option>
+                  <option value="50" selected>50+ seats</option>
+                  <option value="60">60+ seats</option>
+                  <option value="80">80+ seats</option>
+                </select>
+              </div>
+              <div>
+                <label for="dbms-param-sort" style="font-size: 0.75rem; font-weight: 600; color: var(--text-main);">Order By</label>
+                <select id="dbms-param-sort" class="form-control" style="font-size: 0.825rem; padding: 0.35rem 0.5rem;">
+                  <option value="capacity_asc">Capacity (Ascending)</option>
+                  <option value="capacity_desc">Capacity (Descending)</option>
+                  <option value="name_asc">Room Name (Ascending)</option>
+                  <option value="none">No Explicit Sort (Server Default)</option>
+                </select>
+              </div>
+              <div>
+                <label for="dbms-param-limit" style="font-size: 0.75rem; font-weight: 600; color: var(--text-main);">Result Limit</label>
+                <select id="dbms-param-limit" class="form-control" style="font-size: 0.825rem; padding: 0.35rem 0.5rem;">
+                  <option value="10">Limit 10</option>
+                  <option value="20" selected>Limit 20</option>
+                  <option value="50">Limit 50</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Code Dispatch Preview -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">
+                Cloud Firestore SDK Query Code (Server-Side Execution):
+              </label>
+              <span style="font-size: 0.75rem; color: var(--primary); font-family: monospace; font-weight: 600;">Google Cloud Firestore v10 SDK</span>
+            </div>
+            <pre class="dbms-inspector-code"><code id="dbms-code-display">// Query code will generate dynamically...</code></pre>
+          </div>
+
+          <!-- Action Execution Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; background: var(--bg-subtle); padding: 0.75rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border);">
+            <button id="btn-execute-dbms-query" class="btn btn-primary" type="button" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; background: var(--primary);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Execute Server-Side Query on Firestore
+            </button>
+            <div id="dbms-execution-status" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+              <span>Status: Ready to execute</span>
+            </div>
+          </div>
+
+          <!-- Live Execution Metrics -->
+          <div id="dbms-metrics-row" style="display: none; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;">
+            <div class="dbms-stat-box">
+              <div class="val" id="dbms-metric-time">-- ms</div>
+              <div class="lbl">Measured Latency</div>
+            </div>
+            <div class="dbms-stat-box">
+              <div class="val" id="dbms-metric-count">--</div>
+              <div class="lbl">Matched Documents</div>
+            </div>
+            <div class="dbms-stat-box">
+              <div class="val" id="dbms-metric-index" style="font-size: 0.95rem; line-height: 1.4; padding-top: 0.2rem;">Single B-Tree</div>
+              <div class="lbl">Index Evaluated</div>
+            </div>
+            <div class="dbms-stat-box">
+              <div class="val" id="dbms-metric-consistency" style="font-size: 0.95rem; line-height: 1.4; padding-top: 0.2rem;">Strong (Paxos)</div>
+              <div class="lbl">Consistency Level</div>
+            </div>
+          </div>
+
+          <!-- Query Results Table -->
+          <div id="dbms-results-wrapper" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <label style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">
+                Server-Side Results Returned (Real-time Cloud Query Snapshot):
+              </label>
+              <span id="dbms-results-badge" class="badge-tag">0 Documents</span>
+            </div>
+            <div style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-md);">
+              <table class="admin-table" style="font-size: 0.8rem; width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="background: var(--bg-subtle); text-align: left;">
+                    <th style="padding: 0.5rem 0.75rem;">Document ID / Room</th>
+                    <th style="padding: 0.5rem 0.75rem;">Block</th>
+                    <th style="padding: 0.5rem 0.75rem;">Floor</th>
+                    <th style="padding: 0.5rem 0.75rem;">Type</th>
+                    <th style="padding: 0.5rem 0.75rem;">Capacity</th>
+                    <th style="padding: 0.5rem 0.75rem;">Facilities</th>
+                  </tr>
+                </thead>
+                <tbody id="dbms-results-tbody">
+                  <!-- Dynamically populated rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Academic DBMS Theoretical Analysis Accordion -->
+          <div style="background: #fdf2f6; border: 1px solid #f8c8d8; border-radius: var(--radius-md); padding: 1rem;">
+            <h4 style="color: var(--primary); font-size: 0.9rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              DBMS Evaluator Explanatory Notes (Presentation Defense Guide):
+            </h4>
+            <div style="font-size: 0.8rem; color: #4a0420; line-height: 1.6; display: flex; flex-direction: column; gap: 0.4rem;">
+              <div>
+                <strong>1. Indexing Architecture:</strong> Cloud Firestore maintains automatic single-field B-Tree indexes for every field. When executing <code>where("block", "==", "A")</code> and <code>where("capacity", "&gt;=", 50)</code>, Google's query engine evaluates the query via a <em>Zig-Zag Merge Join</em> across individual field indexes. When ordering by a field different from the equality filter, a composite index <code>(block ASC, capacity ASC)</code> is required.
+              </div>
+              <div>
+                <strong>2. NoSQL Denormalization vs. SQL Joins:</strong> In traditional MySQL, retrieving room availability with period schedules requires a relational join (e.g. <code>SELECT * FROM rooms JOIN schedules ON ...</code>). In a distributed environment, cross-partition joins require expensive network RPC shuffles. Firestore embeds the 12-slot timetable matrix and facilities inside each document, guaranteeing an <em>O(1)</em> single-tablet fetch.
+              </div>
+              <div>
+                <strong>3. Strong Consistency (ACID):</strong> Unlike Cassandra or MongoDB which rely on eventual consistency, Firestore runs on <strong>Google Spanner</strong>. TrueTime atomic clocks and Paxos consensus provide linearizable, strongly consistent reads and serializable multi-document transactions.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="background: var(--bg-subtle);">
+          <button type="button" class="btn btn-outline btn-sm" id="btn-close-dbms-modal-footer">Close Inspector</button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <!-- Student App Logic (Vanilla JavaScript ES Module) -->
