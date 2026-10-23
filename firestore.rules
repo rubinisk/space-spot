@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// ==============================================================================
+// SpaceSpot – Cloud Firestore Security Rules
+// ==============================================================================
+// Instructions:
+// 1. Go to Firebase Console -> Firestore Database -> Rules tab
+// 2. Paste the contents of this file and click "Publish"
+// ==============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Classrooms Collection Rules
+    match /classrooms/{classroomId} {
+      
+      // PUBLIC READ: Anyone (students, faculty, guests) can view classroom availability
+      allow read: if true;
+
+      // RESTRICTED WRITE: Only the authorized administrator email (skrubini5@gmail.com)
+      // can create, edit, update status, or delete classroom documents.
+      allow write: if request.auth != null && 
+                     request.auth.token.email == "skrubini5@gmail.com";
+    }
+
+  }
+}

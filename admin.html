@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal – SpaceSpot Classroom Manager</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Protocol Check: Detect if opened directly via file:/// instead of Live Server -->
+  <script>
+    if (window.location.protocol === 'file:') {
+      window.addEventListener('DOMContentLoaded', () => {
+        const warningBanner = document.createElement('div');
+        warningBanner.style.cssText = 'background: #fef2f2; border-bottom: 2px solid #ef4444; color: #991b1b; padding: 1rem 1.5rem; font-size: 0.95rem; position: sticky; top: 0; z-index: 1000;';
+        warningBanner.innerHTML = `
+          <div style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <strong>🚨 Live Server Required:</strong> You opened <code>admin.html</code> via <code>file:///</code>. 
+              Google Authentication and Firebase modules are blocked on <code>file:///</code> URLs.
+              Please right-click <strong>admin.html</strong> in VS Code &rarr; <strong>Open with Live Server</strong>.
+            </div>
+            <a href="http://127.0.0.1:5500/admin.html" class="btn btn-primary btn-sm" style="background: #dc2626;">
+              Open http://127.0.0.1:5500/admin.html
+            </a>
+          </div>
+        `;
+        document.body.insertBefore(warningBanner, document.body.firstChild);
+      });
+    }
+  </script>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">🏫</div>
+        <div class="brand-text">
+          <h1>SpaceSpot</h1>
+          <p>Admin Management Portal</p>
+        </div>
+      </a>
+
+      <nav class="nav-links">
+        <a href="index.html" class="nav-link">
+          <span>Student View</span>
+          <span>👁️</span>
+        </a>
+        <a href="admin.html" class="nav-link active">
+          <span>Admin Portal</span>
+          <span class="badge-tag">Auth</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Configuration Warning Banner -->
+  <div id="config-warning" class="config-banner hidden">
+    <div class="container" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+      <span>
+        ⚠️ <strong>Firebase Not Configured:</strong> Paste your Firebase Project credentials in 
+        <code>firebase-config.js</code> to enable Google Authentication and Firestore writes.
+      </span>
+    </div>
+  </div>
+
+  <main class="container">
+    <!-- SECTION 1: AUTHENTICATION BARRIER (Shown when signed out or unauthorized) -->
+    <section id="auth-section" class="auth-wrapper">
+      <div class="auth-card">
+        <div class="auth-lock-icon">🔐</div>
+        <h2 class="auth-title">Admin Authentication</h2>
+        <p class="auth-desc">
+          Sign in with your Google account. Access is strictly restricted to authorized administrator:
+          <br>
+          <span class="auth-badge">skrubini5@gmail.com</span>
+        </p>
+
+        <!-- Google Sign-In Button -->
+        <button id="btn-google-login" class="btn-google" type="button">
+          <svg class="google-icon" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+          </svg>
+          <span>Sign in with Google</span>
+        </button>
+
+        <!-- Access Denied Banner -->
+        <div id="access-denied-alert" class="access-denied-box hidden">
+          <strong>❌ Access Denied:</strong>
+          <p id="access-denied-text">You are not authorized to access this panel. Only skrubini5@gmail.com is permitted.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: ADMIN MANAGEMENT DASHBOARD (Shown only to skrubini5@gmail.com) -->
+    <section id="admin-dashboard-section" class="hidden">
+      <!-- Admin Toolbar Header -->
+      <div class="admin-toolbar">
+        <div class="admin-user-pill">
+          <img id="admin-user-photo" class="admin-avatar" src="" alt="Admin Avatar" style="display:none;">
+          <div id="admin-avatar-fallback" class="admin-avatar">A</div>
+          <div>
+            <div id="admin-user-email" class="admin-email-text">skrubini5@gmail.com</div>
+            <div class="admin-role-badge">Verified Administrator</div>
+          </div>
+        </div>
+
+        <div class="admin-actions">
+          <!-- Seed Button -->
+          <button id="btn-seed-data" class="btn btn-outline" type="button" title="Seed sample classrooms & labs across Blocks A, C, D, and F">
+            <span>🌱</span>
+            <span>Seed Campus Rooms</span>
+          </button>
+
+          <!-- Add Classroom Button -->
+          <button id="btn-open-add-modal" class="btn btn-primary" type="button">
+            <span>➕</span>
+            <span>Add Classroom</span>
+          </button>
+
+          <!-- Sign Out Button -->
+          <button id="btn-sign-out" class="btn btn-outline" type="button">
+            <span>🚪</span>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics on Admin Panel -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon total">🏢</div>
+          <div>
+            <div class="stat-label">Total Managed</div>
+            <div class="stat-value" id="admin-stat-total">0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon available">✓</div>
+          <div>
+            <div class="stat-label">Available</div>
+            <div class="stat-value" id="admin-stat-available">0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon occupied">✕</div>
+          <div>
+            <div class="stat-label">Occupied</div>
+            <div class="stat-value" id="admin-stat-occupied">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Classrooms Management Table -->
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Classroom</th>
+              <th>Location</th>
+              <th>Capacity</th>
+              <th>Facilities</th>
+              <th>12-Period Availability (1-Click Toggle)</th>
+              <th>Last Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="admin-table-body">
+            <tr>
+              <td colspan="7" style="text-align:center; padding: 3rem;">
+                <div class="loading-spinner"></div>
+                <div style="margin-top:0.5rem; color:var(--text-muted);">Loading classroom inventory...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: ADD / EDIT CLASSROOM -->
+  <div id="classroom-modal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title">Add Classroom</h3>
+        <button id="btn-close-modal" class="modal-close" type="button">&times;</button>
+      </div>
+
+      <form id="classroom-form">
+        <div class="modal-body">
+          <input type="hidden" id="form-room-id">
+
+          <!-- Room Name -->
+          <div class="form-group">
+            <label for="form-name">Room Name / Code *</label>
+            <input type="text" id="form-name" class="form-control" placeholder="e.g. A-204" required>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <!-- Block (A, C, D, F - B & E are Staff Rooms) -->
+            <div class="form-group">
+              <label for="form-block">Block *</label>
+              <select id="form-block" class="form-control" required>
+                <option value="A">Block A</option>
+                <option value="C">Block C</option>
+                <option value="D">Block D</option>
+                <option value="F">Block F</option>
+              </select>
+            </div>
+
+            <!-- Floor (Ground, 1st, 2nd, 3rd) -->
+            <div class="form-group">
+              <label for="form-floor">Floor *</label>
+              <select id="form-floor" class="form-control" required>
+                <option value="0">Ground Floor (100s)</option>
+                <option value="1">1st Floor (200s)</option>
+                <option value="2">2nd Floor (300s)</option>
+                <option value="3">3rd Floor (400s)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <!-- Capacity -->
+            <div class="form-group">
+              <label for="form-capacity">Capacity (Seats) *</label>
+              <input type="number" id="form-capacity" class="form-control" min="1" max="500" value="40" required>
+            </div>
+
+            <!-- Room Type -->
+            <div class="form-group">
+              <label for="form-type">Space Type *</label>
+              <select id="form-type" class="form-control" required>
+                <option value="classroom">Classroom</option>
+                <option value="lab">Laboratory (Lab)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Hidden default status -->
+          <input type="hidden" id="form-status" value="available">
+
+          <!-- Facilities Checkboxes -->
+          <div class="form-group">
+            <label>Facilities Available</label>
+            <div class="facility-checkbox-grid">
+              <label class="facility-checkbox-label">
+                <input type="checkbox" name="facilities" value="Projector"> Projector
+              </label>
+              <label class="facility-checkbox-label">
+                <input type="checkbox" name="facilities" value="AC"> Air Conditioner (AC)
+              </label>
+              <label class="facility-checkbox-label">
+                <input type="checkbox" name="facilities" value="Smart Board"> Smart Board
+              </label>
+              <label class="facility-checkbox-label">
+                <input type="checkbox" name="facilities" value="Whiteboard"> Whiteboard
+              </label>
+              <label class="facility-checkbox-label">
+                <input type="checkbox" name="facilities" value="Mic & Speakers"> Mic &amp; Speakers
+              </label>
+              <label class="facility-checkbox-label">
+                <input type="checkbox" name="facilities" value="Lab Computers"> Lab Computers
+              </label>
+              <label class="facility-checkbox-label">
+                <input type="checkbox" name="facilities" value="Podium"> Stage Podium
+              </label>
+              <label class="facility-checkbox-label">
+                <input type="checkbox" name="facilities" value="Auditorium Audio"> Auditorium Audio
+              </label>
+            </div>
+          </div>
+
+          <!-- 12-Slot Availability Schedule -->
+          <div class="form-group" style="margin-top: 0.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label style="margin-bottom:0;">12-Slot Schedule (Checked = Free / Available)</label>
+              <div style="display:flex; gap:0.4rem;">
+                <button type="button" id="btn-modal-all-free" class="btn btn-outline btn-sm" style="padding:0.15rem 0.4rem; font-size:0.7rem;">All Free</button>
+                <button type="button" id="btn-modal-all-busy" class="btn btn-outline btn-sm" style="padding:0.15rem 0.4rem; font-size:0.7rem;">All Busy</button>
+              </div>
+            </div>
+            <div class="modal-slot-grid" id="modal-slot-checkboxes">
+              <!-- Dynamically populated or static 12 slot items -->
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btn-cancel-modal" class="btn btn-outline">Cancel</button>
+          <button type="submit" id="btn-save-classroom" class="btn btn-primary">Save Classroom</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: DELETE CONFIRMATION -->
+  <div id="delete-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width:420px;">
+      <div class="modal-header">
+        <h3>Confirm Deletion</h3>
+        <button id="btn-close-delete-modal" class="modal-close" type="button">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="delete-modal-msg">Are you sure you want to delete this classroom? This cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btn-cancel-delete" class="btn btn-outline">Cancel</button>
+        <button type="button" id="btn-confirm-delete" class="btn btn-danger">Delete Room</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notifications -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Admin Portal Logic (Vanilla JavaScript ES Module) -->
+  <script type="module" src="admin.js?v=3.0"></script>
+</body>
+</html>
