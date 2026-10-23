@@ -1,4 +1,4 @@
-# SpaceSpot – Smart Classroom Availability Finder 🏫🚀
+# SpaceSpot – Smart Classroom Availability Finder 
 
 A modern, student-centered campus web application that provides real-time tracking of classroom availability across college blocks, floor levels, capacities, and facilities.
 
@@ -6,7 +6,7 @@ Built with **plain HTML5, CSS3, vanilla JavaScript (ES modules)**, and **Firebas
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 SpaceSpot/
@@ -23,7 +23,7 @@ SpaceSpot/
 
 ---
 
-## 🛠️ Step-by-Step Setup Guide
+## Step-by-Step Setup Guide
 
 ### Step 1: Create a Firebase Project
 1. Go to the [Firebase Console](https://console.firebase.google.com/) and click **Add project**.
@@ -83,7 +83,7 @@ SpaceSpot/
 
 ---
 
-## 🚀 How to Run with VS Code Live Server
+## How to Run with VS Code Live Server
 
 1. Install the **Live Server** extension in VS Code if you don't already have it:
    - Press `Ctrl + Shift + X` in VS Code, search for **Live Server** by *Ritwick Dey*, and click **Install**.
@@ -97,7 +97,7 @@ SpaceSpot/
 
 ---
 
-## 🗄️ Firestore Data Model & Campus Architecture
+## Firestore Data Model & Campus Architecture
 
 Collection name: **`classrooms`**
 
@@ -113,7 +113,7 @@ Collection name: **`classrooms`**
 | `facilities` | array | Amenities equipped in the room | `["Projector", "AC", "Lab Computers"]` |
 | `updatedAt` | timestamp | Server timestamp of last edit | `serverTimestamp()` |
 
-### 🏛️ Blocks & Room Numbering Specification
+### Blocks & Room Numbering Specification
 - **6 Total Blocks:** A, B, C, D, E, F.
   - **Classroom / Lab Blocks:** `A`, `C`, `D`, `F`
   - **Staff Room Blocks (Excluded):** `B`, `E`
@@ -124,7 +124,7 @@ Collection name: **`classrooms`**
   - **3rd Floor (Floor 3):** `401`, `402`, `403` *(404 does not exist)*
 - **3–4 rooms per block**, including dedicated departmental laboratories (`🔬 Lab`).
 
-### ⏰ 12 College Time Slots Schedule
+### 12 College Time Slots Schedule
 
 | Slot | Time Window | Notes |
 | :--- | :--- | :--- |
@@ -144,7 +144,7 @@ Collection name: **`classrooms`**
 
 ---
 
-## 🔑 Admin Portal & Security Verification
+## Admin Portal & Security Verification
 
 1. Open `admin.html`.
 2. Click **Sign in with Google**.
@@ -159,7 +159,7 @@ Collection name: **`classrooms`**
 
 ---
 
-## ⚡ Why Firestore Requires Indexes & The Alternate Solution
+## Why Firestore Requires Indexes & The Alternate Solution
 
 ### 1. The Classic Problem: Why Firestore Asks for an Index for Every Query
 In Cloud Firestore, when you execute queries combining multiple fields on the database server:
@@ -203,12 +203,12 @@ flowchart LR
    ```
 
 #### Why This Alternate Way is Far Superior:
-- 🚀 **Zero Indexes Needed:** You will **never** have to build or wait for composite indexes in Firebase Console again.
-- ⚡ **0ms Latency:** Filter changes happen instantaneously in memory with zero network delay.
-- 🔄 **100% Real-Time Sync:** When the admin marks a room occupied or updates a slot, Firestore's `onSnapshot` fires instantly across all student screens.
-- 💰 **Lower Firestore Billing/Quota Usage:** Instead of charging a read request on every single filter dropdown click, all filtering is computed locally in the browser!
+- **Zero Indexes Needed:** You will **never** have to build or wait for composite indexes in Firebase Console again.
+- **0ms Latency:** Filter changes happen instantaneously in memory with zero network delay.
+- **100% Real-Time Sync:** When the admin marks a room occupied or updates a slot, Firestore's `onSnapshot` fires instantly across all student screens.
+- **Lower Firestore Billing/Quota Usage:** Instead of charging a read request on every single filter dropdown click, all filtering is computed locally in the browser!
 
-## 🔗 How SpaceSpot Handles "Joins" in NoSQL (Denormalization vs. SQL Relational Joins)
+## How SpaceSpot Handles "Joins" in NoSQL (Denormalization vs. SQL Relational Joins)
 
 One of the most common questions during a Database presentation is: **"How does your NoSQL database perform JOINs between classrooms, daily time slots, and amenities?"**
 
@@ -243,34 +243,4 @@ classrooms (Collection)
 *Why this is superior:*
 - **Atomic Single-Read Latency ($O(1)$):** The classroom details, its full 12-period daily timetable, and all its physical facilities are retrieved in a **single document read**.
 - **Zero Join Penalties:** Eliminates relational join latency, reduces memory overhead, and allows distributed horizontal scaling across Google Spanner storage tablets.
-
 ---
-
-## 📑 Complete Case Study & PPT Presentation Deck
-A complete academic report and slide-by-slide presentation deck covering all 11 evaluation sections has been generated:
-👉 **[Open CASE_STUDY_AND_PPT.md](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/CASE_STUDY_AND_PPT.md)**
-- **Part 1:** Full Case Study Report (Architecture, Spanner engine, ACID vs BASE, Benchmarks, Future Roadmap, References).
-- **Part 2:** 15-Slide Presentation Deck ready to copy into PowerPoint / Google Slides with speaker notes.
-
----
-
-## 👨‍🏫 Presentation & Code Walkthrough Checklist
-
-During your project viewing session, you can demonstrate the following code sections:
-
-1. **Authentication Observer & Email Authorization**:
-   - Location: [`admin.js`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/admin.js) line ~90 (`onAuthStateChanged` and `AUTHORIZED_ADMIN_EMAIL` check).
-2. **Real-Time Snapshot Listener**:
-   - Student View: [`app.js`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/app.js) line ~180 (`onSnapshot(classroomsQuery, ...)`).
-   - Demonstrates two browser windows side-by-side updating without a page refresh!
-3. **Multi-field Firestore Queries**:
-   - Location: [`app.js`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/app.js) line ~135 (`applyFiltersAndListen()`, building `where()` and `orderBy()`).
-4. **CRUD Operations**:
-   - **Create**: [`admin.js`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/admin.js) line ~340 (`addDoc(classroomsCollection, roomData)`).
-   - **Read**: [`admin.js`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/admin.js) line ~190 (`onSnapshot` for real-time table).
-   - **Update (1-Click Toggle)**: [`admin.js`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/admin.js) line ~295 (`updateDoc` + `serverTimestamp()`).
-   - **Delete**: [`admin.js`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/admin.js) line ~380 (`deleteDoc(docRef)`).
-5. **Database Seeding**:
-   - Location: [`seed.js`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/seed.js) line ~75 (`writeBatch(db)`).
-6. **Backend Security Rules**:
-   - Location: [`firestore.rules`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/firestore.rules).
