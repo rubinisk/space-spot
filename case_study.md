@@ -296,12 +296,3 @@ SpaceSpot demonstrates how Google Cloud Firestore supports a campus classroom an
 11. **SpaceSpot Source Repository:** https://github.com/rubinisk/space-spot
 
 ---
-
-## Presentation Evidence Checklist
-- [x] Confirm Firebase project (`spacespot-137e6`) is reachable with 64 test records.
-- [x] Demonstrate Create, Read, Update, and Delete operations in Admin Portal.
-- [x] Demonstrate real-time update across separate browser windows with zero page reload.
-- [x] Show indexed queries and composite index requirement in Query & Index Inspector.
-- [x] Verify unauthorized write denial and schema constraint enforcement in `firestore.rules`.
-- [x] Present measured query timings using Web Performance API (`performance.now()`).
-- [x] Prepare slides covering all 11 case-study sections and team contributions.
