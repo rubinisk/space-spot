@@ -68,7 +68,7 @@ Use this step-by-step sequence during your presentation to demonstrate all datab
 ### Step 4: Security Rules & Data Integrity Enforcement
 1. In `admin.html`, sign out or attempt signing in with an unauthorized Google account.
 2. The system intercepts the JWT token and denies access.
-3. Show the professor [firestore.rules](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/firestore.rules) to demonstrate edge-proxy access restriction AND database-level integrity constraints (`isValidClassroomData` validating `name`, `block`, `floor 0..3`, `capacity 10..200`, and `status`).
+3. Show the professor [firestore.rules](./firestore.rules) to demonstrate edge-proxy access restriction AND database-level integrity constraints (`isValidClassroomData` validating `name`, `block`, `floor 0..3`, `capacity 10..200`, and `status`).
 
 ---
 
@@ -77,7 +77,7 @@ Use this step-by-step sequence during your presentation to demonstrate all datab
 ### Step 1: Open with VS Code Live Server
 1. Install the **Live Server** extension in VS Code.
 2. Open the `SpaceSpot` folder in VS Code.
-3. Right-click on [index.html](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/index.html) and select **Open with Live Server** (or click **Go Live** on the bottom blue status bar).
+3. Right-click on [index.html](./index.html) and select **Open with Live Server** (or click **Go Live** on the bottom blue status bar).
 4. The browser will open at `http://127.0.0.1:5500/index.html`.
 
 > [!NOTE]
@@ -85,11 +85,11 @@ Use this step-by-step sequence during your presentation to demonstrate all datab
 
 ### Step 2: Verify Firebase Configuration
 The application is pre-configured and connected to the live Firebase project:
-- File: [firebase-config.js](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/firebase-config.js)
+- File: [firebase-config.js](./firebase-config.js)
 - Project ID: `spacespot-137e6`
 
 ### Step 3: Publish Firestore Security Rules
-Security rules are defined in [firestore.rules](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/firestore.rules):
+Security rules are defined in [firestore.rules](./firestore.rules):
 ```firestore
 rules_version = '2';
 service cloud.firestore {
@@ -111,11 +111,6 @@ service cloud.firestore {
         && isValidClassroomData(request.resource.data);
       allow delete: if request.auth != null 
         && request.auth.token.email == "skrubini5@gmail.com";
-    }
-  }
-}
-```
-                     request.auth.token.email == "skrubini5@gmail.com";
     }
   }
 }
@@ -190,20 +185,23 @@ WHERE c.block = 'A';
 In Cloud Firestore, relationships are modeled using **Data Denormalization & Nested Structures**:
 - The 12-period daily timetable schedule is embedded directly as a **Map** (`slots`).
 - Physical facilities are embedded directly as an **Array** (`facilities`).
-- **Result:** An entire classroom record, its schedule, and its amenities are fetched in a single atomic read with $O(1)$ tablet retrieval latency.
+- **Result:** An entire classroom record, its schedule, and its amenities are fetched in a single document read without requiring multi-table SQL joins or distributed network shuffles.
 
-### 2. Dual Indexing Architecture in SpaceSpot
-- **Server-Side B-Tree Indexing:** Firestore maintains automated ascending and descending B-Tree indexes on every document field, enabling logarithmic lookups ($O(\log N + k)$).
-- **Zig-Zag Merge Joins:** Evaluates multiple field filters without requiring pre-built composite indexes for every combination.
-- **In-Memory Reactive Filtering:** For fluid user interface controls (toggling between periods), client-side in-memory projection executes in ~1–3 ms on modern browser CPUs without redundant server reads or index requirements.
+### 2. Querying & Indexing Architecture in SpaceSpot
+- **Server-Side B-Tree Indexing:** Firestore automatically maintains ascending and descending single-field B-Tree indexes on every document field.
+- **Index Merging (Single-Field Index Intersection):** For queries with multiple equality filters (e.g. `block == 'A'` and `floor == 1`), Firestore can intersect individual single-field indexes without requiring a composite index.
+- **Composite Indexes:** When queries combine equality filters with inequality filters or sorting on different fields (`block == 'A'` and `capacity >= 50`), Firestore strictly requires a multi-column composite index.
+- **Client-Side In-Memory Projection:** For interactive user interface filtering (switching periods), client-side in-memory projection executes quickly on the local browser CPU without redundant server reads or extra index requirements.
 
 ---
 
-## Performance Benchmarks (Measured via `performance.now()`)
+## Performance Considerations & Measurement Methodology
 
-| Operation | Measured Latency | Explanation |
+| Operation | Measurement Status | Methodology / Tooling |
 | :--- | :--- | :--- |
-| **Server Query Roundtrip (`getDocs`)** | **38 ms – 78 ms** | Live network roundtrip to Google Cloud Spanner edge partition. |
-| **Real-Time Push (`onSnapshot`)** | **115 ms – 195 ms** | End-to-end propagation from admin commit to student UI display. |
-| **Client In-Memory Projection** | **1.1 ms – 2.8 ms** | Client-side CPU evaluation of 64 rooms during filter adjustments. |
-| **Initial Network Payload** | **~26.4 KB** | Total uncompressed JSON payload for 64 campus documents. |
+| **Server Query Elapsed Time (`getDocs`)** | Live-instrumented in Inspector | High-resolution timestamp (`performance.now()`) around the `getDocs()` network request. |
+| **Admin-to-Student Push Propagation** | Observable in two-window demo | Difference between admin commit time and student `onSnapshot` listener render. |
+| **Client In-Memory Projection** | Local CPU measurement | Timed execution of `.filter()` and `.sort()` over the cached 64-document array. |
+| **Classroom Dataset Payload** | Network tab inspection | Inspected via browser DevTools Network tab (~26 KB uncompressed JSON). |
+
+> **Note:** Timings observed during demonstrations depend on client hardware, network bandwidth, and proximity to Google Cloud data centers; they represent live observed trials rather than guaranteed SLAs.

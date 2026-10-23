@@ -347,7 +347,7 @@
                 <div style="font-size: 0.725rem; color: var(--text-muted);">where("capacity", "&gt;=", 60) + orderBy &bull; Ordered Index</div>
               </button>
               <button type="button" class="btn btn-outline btn-sm" data-preset="preset3" style="text-align: left; padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
-                <div style="font-weight: 700; font-size: 0.825rem;">Preset 3: Zig-Zag Merge Join</div>
+                <div style="font-weight: 700; font-size: 0.825rem;">Preset 3: Index Merging</div>
                 <div style="font-size: 0.725rem; color: var(--text-muted);">where("block", "==", "A") + where("floor", "==", 1)</div>
               </button>
               <button type="button" class="btn btn-outline btn-sm" data-preset="preset4" style="text-align: left; padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
@@ -481,13 +481,13 @@
             </h4>
             <div style="font-size: 0.8rem; color: #4a0420; line-height: 1.6; display: flex; flex-direction: column; gap: 0.4rem;">
               <div>
-                <strong>1. Indexing Architecture:</strong> Cloud Firestore maintains automatic single-field B-Tree indexes for every field. When executing <code>where("block", "==", "A")</code> and <code>where("capacity", "&gt;=", 50)</code>, Google's query engine evaluates the query via a <em>Zig-Zag Merge Join</em> across individual field indexes. When ordering by a field different from the equality filter, a composite index <code>(block ASC, capacity ASC)</code> is required.
+                <strong>1. Indexing Architecture:</strong> Cloud Firestore maintains automatic single-field B-Tree indexes for every field. For queries with multiple equality filters (such as <code>where("block", "==", "A")</code> and <code>where("floor", "==", 1)</code>), Cloud Firestore combines results across individual single-field indexes (index merging). When combining an equality filter on one field with an inequality filter on a different field (e.g. <code>block == 'A'</code> and <code>capacity &gt;= 50</code>), a multi-column Composite Index <code>(block ASC, capacity ASC)</code> is strictly required.
               </div>
               <div>
-                <strong>2. NoSQL Denormalization vs. SQL Joins:</strong> In traditional MySQL, retrieving room availability with period schedules requires a relational join (e.g. <code>SELECT * FROM rooms JOIN schedules ON ...</code>). In a distributed environment, cross-partition joins require expensive network RPC shuffles. Firestore embeds the 12-slot timetable matrix and facilities inside each document, guaranteeing an <em>O(1)</em> single-tablet fetch.
+                <strong>2. NoSQL Denormalization vs. SQL Joins:</strong> In traditional MySQL, retrieving room availability with period schedules requires a relational join (e.g. <code>SELECT * FROM rooms JOIN schedules ON ...</code>). In a distributed environment, cross-partition joins require network shuffles and distributed locks. Firestore embeds the 12-slot timetable matrix and facilities inside each document, enabling retrieval in a single document read without relational joins.
               </div>
               <div>
-                <strong>3. Strong Consistency (ACID):</strong> Unlike Cassandra or MongoDB which rely on eventual consistency, Firestore runs on <strong>Google Spanner</strong>. TrueTime atomic clocks and Paxos consensus provide linearizable, strongly consistent reads and serializable multi-document transactions.
+                <strong>3. Strong Consistency (ACID):</strong> Firestore provides full ACID compliance and external consistency (linearizability) backed by <strong>Google Spanner</strong> TrueTime hardware and Paxos consensus quorums. Reads are strongly consistent by default.
               </div>
             </div>
           </div>

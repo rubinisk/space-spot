@@ -70,7 +70,7 @@ HTML / CSS / JavaScript            HTML / CSS / JavaScript
 SpaceSpot is a browser-based application using the Firebase JavaScript SDK v10. Student views read classroom data and subscribe to updates; the administrator interface performs authorized writes. Firestore manages its server-side storage, indexing, and replication. The application does not need to implement those internal systems itself.
 
 ### 3.2 Storage and Indexing
-Firestore maintains indexes to support queries. Automatic single-field indexes cover many basic equality, range, and sorting queries; some multi-field combinations require composite indexes. Firestore can also use index merging (such as Zig-Zag merge joins) for certain queries.
+Firestore maintains indexes to support queries. Automatic single-field indexes cover many basic equality, range, and sorting queries; some multi-field combinations require composite indexes. Firestore can also combine results across multiple single-field indexes (index merging) for certain compound queries.
 
 The following four queries are implemented and verifiable in SpaceSpot's built-in **DBMS Query & Index Inspector**:
 
@@ -83,7 +83,7 @@ query(collection(db, "classrooms"),
       where("capacity", ">=", 60),
       orderBy("capacity", "asc"));
 
-// 3. Two equality filters on different fields (Index merging / Zig-Zag merge join)
+// 3. Two equality filters on different fields (Index merging across single-field indexes)
 query(collection(db, "classrooms"),
       where("block", "==", "A"),
       where("floor", "==", 1));
@@ -174,11 +174,11 @@ Firestore is commonly utilized for real-time dashboards, mobile applications, co
 5. Open the student view (`index.html`) and administrator portal (`admin.html`) in separate browser sessions.
 
 **Project Files Demonstrated:**
-- [`firebase-config.js`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/firebase-config.js): Database connection settings.
-- [`app.js`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/app.js): Student reads, real-time listeners, and server query execution.
-- [`admin.js`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/admin.js): Admin authentication and CRUD operations.
-- [`seed.js`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/seed.js): 64-room campus data generator.
-- [`firestore.rules`](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/firestore.rules): Access authorization and data integrity constraints.
+- [`firebase-config.js`](./firebase-config.js): Database connection settings.
+- [`app.js`](./app.js): Student reads, real-time listeners, and server query execution.
+- [`admin.js`](./admin.js): Admin authentication and CRUD operations.
+- [`seed.js`](./seed.js): 64-room campus data generator.
+- [`firestore.rules`](./firestore.rules): Access authorization and data integrity constraints.
 
 ### 7.2 Example Document Structure
 ```javascript
@@ -251,12 +251,12 @@ For reproducible demonstration during evaluation, elapsed client-observed time c
 
 | Operation | Status / Measured Trial | Measurement Methodology |
 | :--- | :--- | :--- |
-| **Server-Side Query (`getDocs`)** | Measured live in Inspector | High-resolution timestamp (`performance.now()`) around `getDocs()` network roundtrip. |
-| **Admin-to-Student Push Propagation** | Measured live across 2 windows | Difference between admin commit timestamp and `onSnapshot` render execution. |
-| **Client-Side In-Memory Projection** | ~1.1 ms – 2.8 ms | Local CPU execution time for `.filter()` and `.sort()` over the cached 64-room array. |
-| **Classroom Dataset Payload** | ~26.4 KB | Uncompressed JSON serialization size for 64 classroom records with 12 slots. |
+| **Server-Side Query (`getDocs`)** | Live-instrumented in Inspector | High-resolution timestamp (`performance.now()`) around `getDocs()` network roundtrip. |
+| **Admin-to-Student Push Propagation** | Observed across 2 windows | Difference between admin commit timestamp and `onSnapshot` render execution. |
+| **Client-Side In-Memory Projection** | Local CPU measurement | Timed execution of `.filter()` and `.sort()` over the cached 64-room array. |
+| **Classroom Dataset Payload** | DevTools inspection | Network inspection of JSON payload for 64 records (~26 KB). |
 
-> **Note:** Timings observed during testing depend on internet connection quality, geographical distance to Google Cloud data centers, and client device specifications; they represent observed sample trials rather than guaranteed SLAs.
+> **Note:** Performance timings vary based on client hardware, internet connection bandwidth, and geographical proximity to Google Cloud data centers (`asia-south1` / `us-central1`). Specific static figures have been excluded to avoid presenting sample numbers as general benchmarks or platform SLA guarantees. Actual live timings are observed directly through the project's built-in Query & Index Inspector.
 
 ### 8.2 Scalability Considerations
 A 64-document classroom dataset is modest and well within Firestore's free tier limits. For larger enterprise scale, best practices include:

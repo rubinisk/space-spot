@@ -856,8 +856,8 @@ function initDbmsInspector() {
         minCapacity: null,
         sort: "none",
         limitVal: 20,
-        indexType: "Zig-Zag Merge Join",
-        desc: "Intersects multiple equality filters on single-field B-Tree indexes ('block' and 'floor') without requiring a composite index."
+        indexType: "Index Merging (Single-Field)",
+        desc: "Combines multiple equality filters on single-field B-Tree indexes ('block' and 'floor') via index merging without requiring a composite index."
       };
     } else if (currentPreset === "preset4") {
       return {
