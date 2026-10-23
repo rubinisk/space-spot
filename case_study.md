@@ -2,8 +2,6 @@
 ## Subject: Database Management Systems (DBMS) – Case Study & Project Presentation
 **Project Name:** SpaceSpot – Smart Classroom Availability Finder  
 **Selected Database:** Google Cloud Firestore (NoSQL Document-Oriented Database)  
-**Author / Presenter:** skrubini5@gmail.com  
-**Target Score:** 10 / 10 Marks (Rubrics A, B, C, D, E)
 
 ---
 
@@ -250,10 +248,8 @@ Google Cloud Firestore represents a paradigm shift from traditional server-manag
 ---
 
 ## 11. References
-1. **Google Cloud Spanner Paper:** Corbett, J. C., et al. (2013). "Spanner: Google’s Globally Distributed Database." *ACM Transactions on Computer Systems (TOCS)*.
-2. **Official Cloud Firestore Documentation:** Google Firebase Team. (2026). *Cloud Firestore Data Model, Querying, and Security Rules Guide*. https://firebase.google.com/docs/firestore
-3. **NoSQL vs. SQL Comparative Study:** Cattell, R. (2011). "Scalable SQL and NoSQL data stores." *ACM SIGMOD Record*, 40(4), 12-27.
-4. **Optimistic Concurrency Control in Modern Cloud Datastores:** Bernstein, P. A., & Goodman, N. (1981). "Concurrency Control in Distributed Database Systems." *ACM Computing Surveys*.
+1. **Official Cloud Firestore Documentation:** Google Firebase Team. (2026). *Cloud Firestore Data Model, Querying, and Security Rules Guide*. https://firebase.google.com/docs/firestore
+2. **NoSQL vs. SQL Comparative Study:** Cattell, R. (2011). "Scalable SQL and NoSQL data stores." *ACM SIGMOD Record*, 40(4), 12-27.
 
 ---
 ---
