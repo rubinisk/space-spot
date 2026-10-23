@@ -1,26 +1,50 @@
 rules_version = '2';
 
 // ==============================================================================
-// SpaceSpot – Cloud Firestore Security Rules
+// SpaceSpot – Cloud Firestore Security & Integrity Rules
 // ==============================================================================
-// Instructions:
-// 1. Go to Firebase Console -> Firestore Database -> Rules tab
-// 2. Paste the contents of this file and click "Publish"
+// DBMS Criteria Addressed:
+// 1. Role-Based Access Control (RBAC):
+//    - Public read access for students, faculty, and guests.
+//    - Restricted write permissions limited to verified admin (skrubini5@gmail.com).
+// 2. Database-Level Integrity Constraints (Schema & Domain Validation):
+//    - Field existence and type validation (name, block, floor, capacity, status, slots).
+//    - Domain constraint validation:
+//        * block must be in ['A', 'C', 'D', 'F']
+//        * floor must be between 0 (Ground) and 3 (3rd Floor)
+//        * capacity must be between 10 and 200 seats
+//        * status must be either 'available' or 'occupied'
+//        * slots must be a valid Map structure
 // ==============================================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Classrooms Collection Rules
+    // Database-level integrity validator function
+    function isValidClassroomData(data) {
+      return data.name is string 
+        && data.name.size() >= 2 && data.name.size() <= 20
+        && data.block is string && data.block in ['A', 'C', 'D', 'F']
+        && (data.floor is int || data.floor is number) && data.floor >= 0 && data.floor <= 3
+        && (data.capacity is int || data.capacity is number) && data.capacity >= 10 && data.capacity <= 200
+        && data.status is string && data.status in ['available', 'occupied']
+        && data.slots is map;
+    }
+
+    // Classrooms Collection
     match /classrooms/{classroomId} {
       
-      // PUBLIC READ: Anyone (students, faculty, guests) can view classroom availability
+      // PUBLIC READ: Anyone can query and read real-time classroom availability
       allow read: if true;
 
-      // RESTRICTED WRITE: Only the authorized administrator email (skrubini5@gmail.com)
-      // can create, edit, update status, or delete classroom documents.
-      allow write: if request.auth != null && 
-                     request.auth.token.email == "skrubini5@gmail.com";
+      // RESTRICTED CREATE & UPDATE: Only verified admin + strict data integrity constraints
+      allow create, update: if request.auth != null 
+        && request.auth.token.email == "skrubini5@gmail.com"
+        && isValidClassroomData(request.resource.data);
+
+      // RESTRICTED DELETE: Only verified admin can delete records
+      allow delete: if request.auth != null 
+        && request.auth.token.email == "skrubini5@gmail.com";
     }
 
   }

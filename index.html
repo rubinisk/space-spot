@@ -339,19 +339,23 @@
             </label>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;" id="dbms-query-presets">
               <button type="button" class="btn btn-outline btn-sm active-preset" data-preset="preset1" style="text-align: left; padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
-                <div style="font-weight: 700; font-size: 0.825rem;">Preset 1: Single-Field Equality</div>
-                <div style="font-size: 0.725rem; color: var(--text-muted);">where("block", "==", "A") &bull; Single-Field B-Tree Index</div>
+                <div style="font-weight: 700; font-size: 0.825rem;">Preset 1: Single-Field B-Tree</div>
+                <div style="font-size: 0.725rem; color: var(--text-muted);">where("block", "==", "A") &bull; Single-Field Index</div>
               </button>
               <button type="button" class="btn btn-outline btn-sm" data-preset="preset2" style="text-align: left; padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
                 <div style="font-weight: 700; font-size: 0.825rem;">Preset 2: Range &amp; Sorting</div>
                 <div style="font-size: 0.725rem; color: var(--text-muted);">where("capacity", "&gt;=", 60) + orderBy &bull; Ordered Index</div>
               </button>
               <button type="button" class="btn btn-outline btn-sm" data-preset="preset3" style="text-align: left; padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
-                <div style="font-weight: 700; font-size: 0.825rem;">Preset 3: Compound Filter</div>
+                <div style="font-weight: 700; font-size: 0.825rem;">Preset 3: Zig-Zag Merge Join</div>
+                <div style="font-size: 0.725rem; color: var(--text-muted);">where("block", "==", "A") + where("floor", "==", 1)</div>
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" data-preset="preset4" style="text-align: left; padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
+                <div style="font-weight: 700; font-size: 0.825rem;">Preset 4: Composite Index Demo</div>
                 <div style="font-size: 0.725rem; color: var(--text-muted);">where("block", "==", "A") + where("capacity", "&gt;=", 50)</div>
               </button>
               <button type="button" class="btn btn-outline btn-sm" data-preset="custom" style="text-align: left; padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
-                <div style="font-weight: 700; font-size: 0.825rem;">Preset 4: Interactive Custom</div>
+                <div style="font-weight: 700; font-size: 0.825rem;">Preset 5: Interactive Custom</div>
                 <div style="font-size: 0.725rem; color: var(--text-muted);">Select custom Block, Min Capacity &amp; Order</div>
               </button>
             </div>

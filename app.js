@@ -832,6 +832,7 @@ function initDbmsInspector() {
     if (currentPreset === "preset1") {
       return {
         block: "A",
+        floor: null,
         minCapacity: null,
         sort: "none",
         limitVal: 20,
@@ -841,6 +842,7 @@ function initDbmsInspector() {
     } else if (currentPreset === "preset2") {
       return {
         block: null,
+        floor: null,
         minCapacity: 60,
         sort: "capacity_asc",
         limitVal: 20,
@@ -850,11 +852,22 @@ function initDbmsInspector() {
     } else if (currentPreset === "preset3") {
       return {
         block: "A",
-        minCapacity: 50,
+        floor: 1,
+        minCapacity: null,
         sort: "none",
         limitVal: 20,
         indexType: "Zig-Zag Merge Join",
-        desc: "Compound filter merging single-field B-Tree indexes for 'block' and 'capacity'."
+        desc: "Intersects multiple equality filters on single-field B-Tree indexes ('block' and 'floor') without requiring a composite index."
+      };
+    } else if (currentPreset === "preset4") {
+      return {
+        block: "A",
+        floor: null,
+        minCapacity: 50,
+        sort: "none",
+        limitVal: 20,
+        indexType: "Composite Index Required",
+        desc: "Combines equality on 'block' with range inequality on 'capacity', requiring a multi-column composite index."
       };
     } else {
       // Custom
@@ -866,12 +879,13 @@ function initDbmsInspector() {
       if (block && minCapacity && (sort === "capacity_asc" || sort === "capacity_desc")) {
         indexType = "Composite Index (block, capacity)";
       } else if (block && minCapacity) {
-        indexType = "Zig-Zag Merge Join";
+        indexType = "Composite Index (block, capacity)";
       } else if (sort !== "none") {
         indexType = "Single-Field Ordered Index";
       }
       return {
         block,
+        floor: null,
         minCapacity,
         sort,
         limitVal,
@@ -887,6 +901,9 @@ function initDbmsInspector() {
 
     if (config.block) {
       clauses.push(`where("block", "==", "${config.block}")`);
+    }
+    if (config.floor !== null && config.floor !== undefined) {
+      clauses.push(`where("floor", "==", ${config.floor})`);
     }
     if (config.minCapacity !== null && config.minCapacity > 0) {
       clauses.push(`where("capacity", ">=", ${config.minCapacity})`);
@@ -932,6 +949,9 @@ querySnapshot.forEach((doc) => {
       const constraints = [];
       if (config.block) {
         constraints.push(where("block", "==", config.block));
+      }
+      if (config.floor !== null && config.floor !== undefined) {
+        constraints.push(where("floor", "==", config.floor));
       }
       if (config.minCapacity !== null && config.minCapacity > 0) {
         constraints.push(where("capacity", ">=", config.minCapacity));

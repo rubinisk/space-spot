@@ -46,13 +46,15 @@ Use this step-by-step sequence during your presentation to demonstrate all datab
 
 ### Step 2: Live Server-Side Query & Index Inspector
 1. On the Student View (`index.html`), click the **"DBMS Query & Index Inspector"** button in the filter header.
-2. The modal allows the evaluator to test three distinct server-side queries:
-   - **Preset 1 (Single-Field Equality):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"))`.  
+2. The modal allows the evaluator to test four distinct indexing scenarios:
+   - **Preset 1 (Single-Field B-Tree):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"))`.  
      *Theoretical Defense:* Demonstrates automated single-field B-Tree indexing.
-   - **Preset 2 (Range & Sorting):** Executes `query(collection(db, "classrooms"), where("capacity", ">=", 60), orderBy("capacity", "asc"))`.  
-     *Theoretical Defense:* Demonstrates range inequality filtering combined with index ordering on the same field.
-   - **Preset 3 (Compound Equality + Inequality):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"), where("capacity", ">=", 50))`.  
-     *Theoretical Defense:* Demonstrates Firestore's *Zig-Zag merge join* intersecting two independent B-Trees.
+   - **Preset 2 (Range & Sorting on Same Field):** Executes `query(collection(db, "classrooms"), where("capacity", ">=", 60), orderBy("capacity", "asc"))`.  
+     *Theoretical Defense:* Demonstrates range inequality filtering combined with index ordering on the same field using a single-field B-Tree.
+   - **Preset 3 (Zig-Zag Merge Join):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"), where("floor", "==", 1))`.  
+     *Theoretical Defense:* Demonstrates Firestore's *Zig-Zag merge join* algorithm intersecting two independent B-Tree indexes without requiring a composite index.
+   - **Preset 4 (Composite Index Requirement Demo):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"), where("capacity", ">=", 50))`.  
+     *Theoretical Defense:* Demonstrates when Firestore strictly requires a multi-column composite index `(block ASC, capacity ASC, __name__ ASC)` for combining equality with range inequality across different fields. Captures the Google Cloud error and displays the index creation URL.
 3. Click **"Execute Server-Side Query on Firestore"**:
    - The system measures live roundtrip latency in real time using `performance.now()`.
    - Results are rendered in a live snapshot table directly from Google Cloud servers.
@@ -63,10 +65,10 @@ Use this step-by-step sequence during your presentation to demonstrate all datab
 - **UPDATE:** Click any period slot in the admin table (executes `updateDoc` targeting `slots.slotX`).
 - **DELETE:** Click the "Delete" button on any room in the Admin Portal (executes `deleteDoc`).
 
-### Step 4: Security Rules Enforcement
+### Step 4: Security Rules & Data Integrity Enforcement
 1. In `admin.html`, sign out or attempt signing in with an unauthorized Google account.
 2. The system intercepts the JWT token and denies access.
-3. Show the professor [firestore.rules](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/firestore.rules) to demonstrate edge-proxy access restriction.
+3. Show the professor [firestore.rules](file:///c:/Users/Rubini/OneDrive/Desktop/SpaceSpot/firestore.rules) to demonstrate edge-proxy access restriction AND database-level integrity constraints (`isValidClassroomData` validating `name`, `block`, `floor 0..3`, `capacity 10..200`, and `status`).
 
 ---
 
@@ -92,12 +94,27 @@ Security rules are defined in [firestore.rules](file:///c:/Users/Rubini/OneDrive
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /classrooms/{classroomId} {
-      // Anyone can read classroom availability (students & visitors)
-      allow read: if true;
+    function isValidClassroomData(data) {
+      return data.name is string 
+        && data.name.size() >= 2 && data.name.size() <= 20
+        && data.block is string && data.block in ['A', 'C', 'D', 'F']
+        && (data.floor is int || data.floor is number) && data.floor >= 0 && data.floor <= 3
+        && (data.capacity is int || data.capacity is number) && data.capacity >= 10 && data.capacity <= 200
+        && data.status is string && data.status in ['available', 'occupied']
+        && data.slots is map;
+    }
 
-      // Only authorized university admin can write, edit, or delete
-      allow write: if request.auth != null && 
+    match /classrooms/{classroomId} {
+      allow read: if true;
+      allow create, update: if request.auth != null 
+        && request.auth.token.email == "skrubini5@gmail.com"
+        && isValidClassroomData(request.resource.data);
+      allow delete: if request.auth != null 
+        && request.auth.token.email == "skrubini5@gmail.com";
+    }
+  }
+}
+```
                      request.auth.token.email == "skrubini5@gmail.com";
     }
   }

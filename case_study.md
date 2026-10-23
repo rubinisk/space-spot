@@ -12,18 +12,18 @@
 **Google Cloud Firestore** is a fully managed, serverless, cloud-native NoSQL document-oriented database designed to store, synchronize, and query data for mobile, web, and enterprise server applications at global scale. Developed natively on Google Cloud Platform (GCP) and integrated into the Firebase development ecosystem, Firestore delivers automated multi-region replication, sub-second live streaming, and high query concurrency without requiring manual database administration.
 
 ### 1.2 History & Evolution
-- **Origins (2012):** Firebase was originally founded by James Tamplin and Andrew Lee, releasing the **Firebase Realtime Database (RTDB)**. RTDB revolutionized web development with its real-time JSON tree synchronization, but faced architectural bottlenecks in deep tree querying, multi-region scaling, and index flexibility.
+- **Origins (2012):** Firebase was founded by James Tamplin and Andrew Lee, releasing the **Firebase Realtime Database (RTDB)**. RTDB popularized real-time web development through hierarchical JSON synchronization, but experienced architectural constraints in deep tree querying, multi-region scaling, and index flexibility.
 - **Google Acquisition (2014):** Google acquired Firebase to serve as its flagship Backend-as-a-Service (BaaS) and mobile development platform.
-- **Invention of Cloud Firestore (October 2017):** Announced in public beta as a collaborative engineering effort between the Firebase team and the Google Cloud Platform Spanner team. Firestore addressed RTDB's limitations by adopting a hierarchical document-collection model backed by Google Spanner's distributed storage architecture.
+- **Invention of Cloud Firestore (October 2017):** Announced in public beta as a collaborative engineering effort between the Firebase team and Google Cloud Platform's Spanner team. Firestore addressed RTDB's querying constraints by adopting a document-collection model backed by Google Spanner's distributed storage architecture.
 - **General Availability (January 2019):** Promoted to GA with multi-region replication, enterprise-grade 99.999% SLA availability, and native integration into Google Cloud Console.
 - **Modern Era (2023–2026):** Introduction of Vector Search embeddings for generative AI (RAG), automated point-in-time recovery (PITR), and Firebase Data Connect for hybrid relational-document architectures.
 - **Current Ownership:** Google LLC (Alphabet Inc.).
 
 ### 1.3 Importance & Relevance in Real-World Applications
 Traditional relational databases (such as MySQL or PostgreSQL) require dedicated server provisioning, connection pool tuning, schema migration scripts, and manual read-replica sharding when traffic surges. In contrast, Cloud Firestore provides:
-1. **True Serverless Autoscaling:** Scales automatically from zero requests to millions of concurrent operations with zero infrastructure provisioning or downtime.
-2. **Native Real-Time WebChannel Streaming:** Replaces expensive polling loops with persistent HTTP/2 and WebChannel duplex connections that push database mutations directly to listening clients within milliseconds.
-3. **Built-in Offline Persistence:** Maintains a local database mirror (using browser IndexedDB or device SQLite) enabling zero-latency cached reads and queuing offline writes for automatic synchronization upon network reconnection.
+1. **Serverless Autoscaling:** Scales dynamically from zero requests to millions of concurrent operations with zero infrastructure provisioning or server restarts.
+2. **Native Real-Time WebChannel Streaming:** Replaces polling loops with persistent HTTP/2 and WebChannel duplex connections that push database mutations directly to listening clients within milliseconds.
+3. **Built-in Offline Persistence:** Maintains a local database mirror (using browser IndexedDB or device SQLite) enabling fast in-memory cached reads and queuing offline writes for automatic synchronization upon network reconnection.
 
 ---
 
@@ -41,11 +41,11 @@ Root Database
         │     ├── Field: block ("A") [string]
         │     ├── Field: floor (0) [number]
         │     ├── Field: type ("classroom") [string]
-        │     ├── Field: capacity (50) [number]
+        │     ├── Field: capacity (55) [number]
         │     ├── Field: status ("available") [string]
         │     ├── Map: slots { slot1: "available", slot2: "occupied", ... } [nested map]
         │     ├── Array: facilities ["Projector", "AC", "Whiteboard"] [array]
-        │     └── Field: updatedAt (Timestamp: 2026-10-23 14:30:00 UTC) [timestamp]
+        │     └── Field: updatedAt (Timestamp) [timestamp]
         └── Document ("C-201") ...
 ```
 - **Collections:** Lightweight, schema-free containers that hold documents exclusively. Collections do not hold raw values directly.
@@ -101,24 +101,25 @@ Cloud Firestore is a **cloud-native, horizontally distributed, multi-tenant data
 ### 3.2 Indexing Mechanisms
 Firestore achieves consistent query performance through an automated, multi-tiered indexing architecture:
 1. **Automatic Single-Field Indexes:** By default, Firestore automatically indexes every scalar field and array element in every document in both **Ascending** and **Descending** order using distributed B-Trees.
-2. **Composite Indexes:** When queries combine equality filters with inequality sorting on distinct fields (e.g., `where("block", "==", "A")` combined with `orderBy("capacity", "desc")`), Firestore requires a composite multi-column B-Tree index. This index pre-computes the sorted multidimensional keys to prevent slow in-memory sorting.
-3. **Zig-Zag Merge Join Algorithm:** When multiple equality filters are executed simultaneously (e.g., `where("block", "==", "A")` and `where("floor", "==", 1)`), Firestore avoids requiring an exponential number of composite indexes by intersecting individual single-field B-Tree indexes via a logarithmic *Zig-Zag merge join*.
-4. **Hybrid Indexing Strategy in SpaceSpot:** SpaceSpot showcases both paradigm approaches:
+2. **Single-Field Ordered Indexing:** When executing an inequality filter and sort on the same field (e.g., `where("capacity", ">=", 60) + orderBy("capacity", "asc")`), Firestore utilizes the single-field B-Tree on `capacity` without requiring a composite index.
+3. **Zig-Zag Merge Join Algorithm:** When multiple equality filters are executed simultaneously (e.g., `where("block", "==", "A")` and `where("floor", "==", 1)`), Firestore intersects individual single-field B-Tree indexes via a logarithmic *Zig-Zag merge join*, successfully returning results without requiring a pre-built composite index.
+4. **Composite Indexes:** When queries combine an equality filter on one field with an inequality filter or sorting on a distinct field (e.g., `where("block", "==", "A")` combined with `where("capacity", ">=", 50)` or `orderBy("capacity", "desc")`), Firestore strictly requires a multi-column composite index `(block ASC, capacity ASC, __name__ ASC)`. This index pre-computes the sorted multi-dimensional keys to guarantee query execution speed.
+5. **Dual Architecture in SpaceSpot:** SpaceSpot showcases both paradigm approaches:
    - **Server-Side Indexed Queries:** Executes genuine Firestore queries (`query()`, `where()`, `orderBy()`) backed by Google Cloud B-Tree indexes, verifiable via the built-in **DBMS Query & Index Inspector**.
-   - **In-Memory Client-Side Projection:** Leverages the real-time `onSnapshot` cached collection to perform sub-millisecond client-side filtering (~1–3 ms on browser CPU) for rapid UI slot toggling, avoiding unnecessary composite index build requirements.
+   - **Client-Side In-Memory Projection:** Leverages the real-time `onSnapshot` cached collection to perform fast client-side filtering (~1.1 ms – 2.8 ms on browser CPU) for high-frequency UI slot toggling.
 
-### 3.3 Query Processing & Result-Set Proportional Complexity ($O(k)$)
+### 3.3 Query Processing & Result-Set Proportional Complexity
 - **Shallow Queries:** Queries in Firestore are strictly shallow. Querying the `/classrooms` collection returns only the top-level classroom documents; nested subcollections are never read unless explicitly targeted.
-- **Execution Complexity Proportional to Results ($O(k)$):** In traditional relational databases, unindexed or complex queries require table scans proportional to the total database size ($O(N)$). Even with B-Tree indexes, tree traversals scale with the total number of records ($O(\log N)$). In Cloud Firestore, **query performance depends exclusively on the size of the result set ($k$), NOT the total size of the database collection ($N$)**. Retrieving 10 documents from a collection of 64 documents takes the exact same database lookup time as retrieving 10 documents from a collection of 100,000,000 documents.
+- **Result-Set Proportional Execution ($O(k)$):** In traditional relational databases without indexes, queries require full table scans proportional to the collection size ($O(N)$). With B-Tree indexes, relational lookups require tree traversals proportional to depth ($O(\log N)$). In Cloud Firestore, B-Tree indexes are traversed in $O(\log N)$ to find the starting key, after which documents are streamed in time proportional to the result set size ($k$). Query execution is described as **result-set proportional ($O(k)$)** because retrieving 10 documents from a collection of 64 documents takes comparable index scan time to retrieving 10 documents from a collection of 10,000,000 documents.
 
-### 3.4 Transactions & Concurrency Control (ACID vs. BASE)
-- **ACID Compliance:** Firestore provides full ACID (Atomicity, Consistency, Isolation, Durability) guarantees across single and multi-document transactions.
-- **Concurrency Model:** Utilizes **Optimistic Concurrency Control (OCC)**:
-  1. Transaction reads snapshot data without placing shared read locks.
-  2. Transaction computes updates in local memory.
-  3. During commit, the Spanner engine verifies whether any document read during the transaction was modified concurrently.
-  4. If a conflict occurs, the Firestore client SDK automatically re-executes the transaction.
-- **Global Strong Consistency (Linearizability):** Unlike NoSQL databases operating under the BASE model (e.g., Apache Cassandra or DynamoDB with eventual consistency), **Cloud Firestore provides Global Strong Consistency everywhere**. Powered by Google Spanner's **TrueTime API** (synchronized via GPS receivers and atomic clocks) and **Paxos consensus quorums**, all writes are synchronously committed to a majority quorum across at least three availability zones before acknowledging success. Subsequent reads immediately observe the newly committed state.
+### 3.4 Transactions, Concurrency Control & Consistency Model (Strict ACID)
+- **Strict ACID Compliance:** Cloud Firestore is fundamentally an **ACID (Atomicity, Consistency, Isolation, Durability)** database engine. It does **not** adopt the BASE (Basically Available, Soft-state, Eventual consistency) model common in simpler NoSQL stores like Cassandra or DynamoDB.
+- **Global Strong Consistency (Linearizability):** Powered by Google Spanner's **TrueTime API** (synchronized via atomic clocks and GPS receivers) and **Paxos consensus quorums**, writes are synchronously committed to a majority quorum across at least three availability zones before returning success. Reads in Firestore are **strongly consistent by default**, guaranteeing that any read operation immediately observes the most recently committed write.
+- **Optimistic Concurrency Control (OCC):** Multi-document transactions operate without shared read locks:
+  1. Transaction reads snapshot data.
+  2. Transaction computes updates locally.
+  3. During commit, Google Spanner verifies whether any read document changed concurrently.
+  4. If a conflict occurs, the Firestore client SDK automatically retries the transaction.
 
 ### 3.5 Scalability & Multi-Region Replication
 - **Automatic Horizontal Sharding:** As collections expand or write throughput surges, Firestore automatically splits collections across distinct storage shards without manual database administrator intervention.
@@ -133,7 +134,7 @@ Firestore achieves consistent query performance through an automated, multi-tier
 | **Security & Authentication** | Declarative **Firestore Security Rules** (`firestore.rules`) executed at Google's edge proxies, verifying cryptographically signed **Firebase Authentication** JWT tokens (`request.auth.token.email`). |
 | **Data Encryption** | **Data-at-Rest:** AES-256 Google-managed or Customer-Managed Encryption Keys (CMEK).<br>**Data-in-Transit:** TLS 1.3 encryption enforced across all communication channels. |
 | **Backup & Recovery** | Automated managed daily backups, Cloud Storage scheduled exports, and continuous **Point-in-Time Recovery (PITR)** supporting 7-day snapshot rewind. |
-| **Data Integrity Constraints** | Declarative schema validation rules enforcing types, value ranges, and regex patterns at the database boundary (`request.resource.data.capacity is int`). |
+| **Data Integrity Constraints** | Declarative schema validation rules enforcing field types, value ranges, and enums at the database boundary (`request.resource.data.capacity is int && request.resource.data.capacity >= 10`). |
 | **Stored Procedures / Triggers** | Handled natively by event-driven serverless **Cloud Functions for Firebase** (`onDocumentCreated`, `onDocumentUpdated`, `onDocumentDeleted`). |
 | **Ecosystem Integration** | Native streaming export to Google BigQuery, vector embeddings generation with Vertex AI, and full-text search indexing via Algolia / Typesense. |
 
@@ -141,15 +142,15 @@ Firestore achieves consistent query performance through an automated, multi-tier
 
 ## 5. Strengths & Limitations
 
-### 5.1 Architectural Comparison: Cloud Firestore vs. Traditional MySQL
+### 5.1 Comprehensive Architectural Comparison: Cloud Firestore vs. Traditional MySQL
 | Metric / Dimension | Traditional Relational DBMS (MySQL) | Cloud Firestore (NoSQL Document Store) |
 | :--- | :--- | :--- |
 | **Data Model** | Relational tables, rigid schemas, foreign key normalization | Semi-structured JSON-like documents and collections |
 | **Schema Evolution** | Requires locking `ALTER TABLE` DDL migrations | Schema-free; individual documents evolve independently |
 | **Real-Time Data Sync** | Requires external infrastructure (Redis Pub/Sub, WebSockets, socket.io) | **Native `onSnapshot()` stream**; pushes deltas in sub-200ms |
-| **Relational Joins** | Native `JOIN` operations ($O(\log N)$ on single-node B-Trees) | **No native joins**; eliminated via Document Denormalization |
-| **Distributed Join Scaling** | Horizontally sharded joins require network shuffles & cross-node RPCs | **$O(1)$ single-tablet retrieval** via embedded maps and arrays |
-| **Query Scaling** | Dependent on table size and index depth ($O(N)$ or $O(\log N)$) | **Performance $O(k)$ proportional only to result set size** |
+| **Single-Node Joins** | Highly optimized via B-Tree indexed foreign keys ($O(\log N)$) | **No native joins**; handled via Document Denormalization |
+| **Distributed Scaling** | Cross-shard joins require network shuffles and distributed locks | **Single-tablet retrieval** via embedded maps and arrays |
+| **Query Scaling** | Dependent on table size and index depth ($O(N)$ or $O(\log N)$) | **Performance scales with result set size ($O(k)$)** |
 | **DevOps & Infrastructure** | High (server provisioning, replication lag, OS patching, pool tuning) | **Zero (100% Serverless)**; Google automates maintenance |
 | **Offline Persistence** | Requires manual client-side caching logic and sync handlers | **Native offline persistence** (IndexedDB / SQLite local cache) |
 | **Security Boundary** | Handled by custom backend API layer and database role grants | **Edge Security Rules** evaluating JWT tokens directly at gateway |
@@ -157,17 +158,17 @@ Firestore achieves consistent query performance through an automated, multi-tier
 ### 5.2 Strengths
 1. **Zero DevOps Overhead:** Eliminates database server provisioning, OS maintenance, connection limits, and capacity planning.
 2. **Reactive Event Streaming:** Enables real-time reactive user interfaces that automatically update when database state changes without polling.
-3. **Offline Resilience:** Reads and writes seamlessly continue when disconnected from the internet, automatically reconciling with the server upon reconnection.
-4. **Predictable Query Latency:** Eliminates unpredictable query degradation as collections grow into billions of records.
+3. **Offline Resilience:** Reads and writes continue when disconnected from the internet, automatically reconciling with the server upon reconnection.
+4. **Predictable Query Latency:** Eliminates query degradation as collections grow into millions of records.
 
 ### 5.3 Limitations & SpaceSpot Engineering Mitigations
 1. **1 MB Document Size Limit:** Documents cannot store large multimedia objects.  
    *Mitigation:* Large binary assets are stored in Google Cloud Storage, storing only the secure HTTPS download URL inside Firestore.
 2. **1 Write per Second per Document Limit:** High-frequency simultaneous updates to a single document will experience contention.  
    *Mitigation:* SpaceSpot scopes period toggles to distinct documents; high-concurrency systems distribute load across distributed counter shards.
-3. **No Native Relational Joins:** Performing multi-collection joins requires multiple sequential client roundtrips.  
-   *Mitigation:* Solved via **Denormalization**: embedding the 12-period daily schedule (`slots` map) and room amenities (`facilities` array) directly within the classroom document. This eliminates multi-table joins completely.
-4. **No Native Full-Text Substring Search:** Querying substrings (e.g., SQL `LIKE '%projector%'`) is not natively supported.  
+3. **Absence of Native Relational Joins:** Multi-collection joins require multiple roundtrips if normalized.  
+   *Mitigation:* Solved via **Denormalization**: embedding the 12-period daily schedule (`slots` map) and room amenities (`facilities` array) directly within the classroom document.
+4. **No Native Full-Text Substring Search:** Querying arbitrary substrings (e.g., SQL `LIKE '%projector%'`) is not natively supported.  
    *Mitigation:* SpaceSpot utilizes array-contains filters (`where("facilities", "array-contains", "Projector")`) or third-party engines like Algolia.
 
 ---
@@ -196,7 +197,7 @@ Firestore achieves consistent query performance through an automated, multi-tier
   block: "A",                 // string: Academic Block (A, C, D, F)
   floor: 0,                   // number: Floor Level (0=Ground, 1=1st, 2=2nd, 3=3rd)
   type: "classroom",          // string: "classroom" or "lab"
-  capacity: 50,               // number: Seating capacity
+  capacity: 55,               // number: Seating capacity
   status: "available",        // string: Fallback overall status
   facilities: [               // array of strings: Amenities
     "Projector", 
@@ -267,42 +268,62 @@ await deleteDoc(doc(db, "classrooms", roomId));
 ```
 
 ### 7.4 Live Server-Side Query & Indexing Demonstration
-SpaceSpot includes a built-in **DBMS Query & Index Inspector** directly accessible from the main interface (`index.html`). Evaluators can execute live server queries against Google Cloud servers:
-```javascript
-// Server-Side Compound Query Demonstrating B-Tree Index Evaluation
-import { collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+SpaceSpot includes a built-in **DBMS Query & Index Inspector** directly accessible from the main interface (`index.html`). Evaluators can execute live server queries against Google Cloud servers demonstrating four distinct indexing behaviors:
 
-const q = query(
-  collection(db, "classrooms"),
-  where("block", "==", "A"),
-  where("capacity", ">=", 50)
-);
+1. **Single-Field B-Tree Query:**
+   ```javascript
+   query(collection(db, "classrooms"), where("block", "==", "A"))
+   ```
+   *Behavior:* Evaluates via the automated B-Tree index on `block`.
 
-// High-precision timing via Web Performance API
-const t0 = performance.now();
-const snapshot = await getDocs(q);
-const t1 = performance.now();
-console.log(`Server Query executed in ${(t1 - t0).toFixed(1)} ms`);
-```
-- **Single-Field B-Tree Index:** When evaluating `where("block", "==", "A")`, Firestore utilizes the automatically maintained B-Tree index on `block`.
-- **Zig-Zag Merge Join:** When evaluating `where("block", "==", "A")` and `where("capacity", ">=", 50)`, Firestore intersects both single-field indexes via a logarithmic Zig-Zag merge join.
-- **Composite Index Requirement:** When combining `where("block", "==", "A")` with `orderBy("capacity", "desc")`, Firestore requires a multi-column composite index `(block ASC, capacity DESC)` to avoid unindexed memory sorts.
+2. **Range Query with Index Ordering:**
+   ```javascript
+   query(collection(db, "classrooms"), where("capacity", ">=", 60), orderBy("capacity", "asc"))
+   ```
+   *Behavior:* Filters and sorts using the single-field B-Tree index on `capacity`.
+
+3. **Multi-Field Zig-Zag Merge Join:**
+   ```javascript
+   query(collection(db, "classrooms"), where("block", "==", "A"), where("floor", "==", 1))
+   ```
+   *Behavior:* Evaluated by Firestore's Zig-Zag merge join intersecting two independent single-field indexes without needing a composite index.
+
+4. **Composite Index Requirement Demonstration:**
+   ```javascript
+   query(collection(db, "classrooms"), where("block", "==", "A"), where("capacity", ">=", 50))
+   ```
+   *Behavior:* Demonstrates why Cloud Firestore rejects queries combining equality on one field with range inequalities on another field without a pre-computed Composite Index `(block ASC, capacity ASC, __name__ ASC)`. Firestore returns a `FAILED_PRECONDITION` error containing the exact direct link to build the index in Firebase Console.
 
 ### 7.5 Database Security & Integrity Rules
 ```javascript
 // Located in firestore.rules
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /classrooms/{roomId} {
-      // Unauthenticated students have read-only access
+
+    // Database-level integrity validator function
+    function isValidClassroomData(data) {
+      return data.name is string 
+        && data.name.size() >= 2 && data.name.size() <= 20
+        && data.block is string && data.block in ['A', 'C', 'D', 'F']
+        && (data.floor is int || data.floor is number) && data.floor >= 0 && data.floor <= 3
+        && (data.capacity is int || data.capacity is number) && data.capacity >= 10 && data.capacity <= 200
+        && data.status is string && data.status in ['available', 'occupied']
+        && data.slots is map;
+    }
+
+    match /classrooms/{classroomId} {
+      // PUBLIC READ: Anyone can read classroom availability
       allow read: if true;
       
-      // Only authenticated staff with university domain can write
-      allow create, update, delete: if request.auth != null 
-        && request.auth.token.email.matches('.*@amrita[.]edu$')
-        && request.resource.data.capacity is int
-        && request.resource.data.capacity > 0;
+      // RESTRICTED WRITE: Authorized admin + strict field type & domain constraint validation
+      allow create, update: if request.auth != null 
+        && request.auth.token.email == "skrubini5@gmail.com"
+        && isValidClassroomData(request.resource.data);
+
+      allow delete: if request.auth != null 
+        && request.auth.token.email == "skrubini5@gmail.com";
     }
   }
 }
@@ -311,14 +332,14 @@ service cloud.firestore {
 ---
 
 ## 8. Performance Considerations & Measured Benchmarks
-All performance metrics are measured live using standard browser performance instrumentation (`window.performance.now()`) on standard broadband connections:
+All performance metrics represent empirical observations measured live via the standard Web Performance API (`window.performance.now()`) under standard network conditions, rather than contractual SLA guarantees:
 
-| Metric | Measured Result | Methodology / Theoretical Explanation |
+| Operation / Metric | Observed Timing | Technical Explanation & Methodology |
 | :--- | :--- | :--- |
-| **Server-Side Query Latency (`getDocs`)** | **38.0 ms – 78.5 ms** | HTTPS / gRPC roundtrip to Google Cloud Spanner regional edge nodes with B-Tree index traversal. |
-| **Real-Time Push Propagation (`onSnapshot`)** | **115.0 ms – 195.0 ms** | Time elapsed from admin `updateDoc` commit to student client UI render via WebChannel multiplexed stream. |
-| **Client In-Memory Projection** | **1.1 ms – 2.8 ms** | Browser CPU execution time for `.filter()` and `.sort()` across 64 cached classroom records. |
-| **Payload Bandwidth Consumption** | **~26.4 KB** | Total uncompressed JSON payload for all 64 campus documents, including nested 12-period schedule maps. |
+| **Server-Side Query Roundtrip (`getDocs`)** | **38 ms – 78 ms** | Network roundtrip via HTTPS/gRPC to Google Cloud Spanner regional edge nodes with B-Tree index traversal. |
+| **Real-Time Push Propagation (`onSnapshot`)** | **115 ms – 195 ms** | Time elapsed from admin `updateDoc` commit to student client UI render via WebChannel multiplexed stream. |
+| **Client In-Memory Projection** | **1.1 ms – 2.8 ms** | Local browser CPU execution time for `.filter()` and `.sort()` across 64 cached classroom records. |
+| **Initial Network Payload** | **~26.4 KB** | Total uncompressed JSON payload for all 64 campus documents, including nested 12-period schedule maps. |
 
 ---
 
@@ -330,7 +351,7 @@ All performance metrics are measured live using standard browser performance ins
 ---
 
 ## 10. Conclusion
-Google Cloud Firestore provides a compelling demonstration of modern cloud-native database design, transitioning from server-tethered relational architectures to horizontally scalable, serverless document stores. For applications demanding instant real-time synchronization, zero DevOps maintenance, built-in offline reliability, and predictable $O(k)$ query complexity, Cloud Firestore delivers superior responsiveness and scalability compared to legacy single-node RDBMS systems like MySQL.
+Google Cloud Firestore provides a compelling demonstration of modern cloud-native database design, transitioning from server-tethered relational architectures to horizontally scalable, serverless document stores. For applications demanding instant real-time synchronization, zero DevOps maintenance, built-in offline reliability, and predictable result-set proportional query complexity, Cloud Firestore delivers superior responsiveness and scalability compared to legacy single-node RDBMS systems like MySQL.
 
 ---
 
