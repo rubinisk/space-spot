@@ -19,9 +19,9 @@ service cloud.firestore {
     //        * floor: integer 0 to 3
     //        * capacity: integer 10 to 200 seats
     //        * status: string in ['available', 'occupied']
-    //        * slots: map containing time slot entries
+    //        * slots: map containing time slot entries (each slot is 'available' or 'occupied')
     //        * type (optional): string in ['classroom', 'lab']
-    //        * facilities (optional): list
+    //        * facilities (optional): list of amenity strings
     //        * updatedAt (optional): timestamp
     // ==============================================================================
 
@@ -29,6 +29,30 @@ service cloud.firestore {
     function isAuthorizedAdmin() {
       return request.auth != null 
         && request.auth.token.email == "skrubini5@gmail.com";
+    }
+
+    // Helper: Validate individual slot values within the slots map
+    function isValidSlotsMap(slots) {
+      return slots is map
+        && (!('slot1' in slots) || slots.slot1 in ['available', 'occupied'])
+        && (!('slot2' in slots) || slots.slot2 in ['available', 'occupied'])
+        && (!('slot3' in slots) || slots.slot3 in ['available', 'occupied'])
+        && (!('slot4' in slots) || slots.slot4 in ['available', 'occupied'])
+        && (!('slot5' in slots) || slots.slot5 in ['available', 'occupied'])
+        && (!('slot6' in slots) || slots.slot6 in ['available', 'occupied'])
+        && (!('slot7' in slots) || slots.slot7 in ['available', 'occupied'])
+        && (!('slot8' in slots) || slots.slot8 in ['available', 'occupied'])
+        && (!('slot9' in slots) || slots.slot9 in ['available', 'occupied'])
+        && (!('slot10' in slots) || slots.slot10 in ['available', 'occupied'])
+        && (!('slot11' in slots) || slots.slot11 in ['available', 'occupied'])
+        && (!('slot12' in slots) || slots.slot12 in ['available', 'occupied']);
+    }
+
+    // Helper: Validate optional type, facilities, and updatedAt fields
+    function isValidOptionalFields(data) {
+      return (!('type' in data) || (data.type is string && data.type in ['classroom', 'lab']))
+        && (!('facilities' in data) || data.facilities is list)
+        && (!('updatedAt' in data) || data.updatedAt is timestamp || data.updatedAt is string);
     }
 
     // Helper: Database-level integrity validator function
@@ -40,7 +64,8 @@ service cloud.firestore {
         && (data.floor is int || data.floor is number) && data.floor >= 0 && data.floor <= 3
         && (data.capacity is int || data.capacity is number) && data.capacity >= 10 && data.capacity <= 200
         && data.status is string && data.status in ['available', 'occupied']
-        && data.slots is map;
+        && isValidSlotsMap(data.slots)
+        && isValidOptionalFields(data);
     }
 
     // Classrooms Collection

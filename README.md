@@ -74,10 +74,10 @@ Use this step-by-step sequence during your presentation to demonstrate all datab
      *Theoretical Defense:* Demonstrates automated single-field B-Tree indexing.
    - **Preset 2 (Range & Sorting on Same Field):** Executes `query(collection(db, "classrooms"), where("capacity", ">=", 60), orderBy("capacity", "asc"))`.  
      *Theoretical Defense:* Demonstrates range inequality filtering combined with index ordering on the same field using a single-field B-Tree.
-   - **Preset 3 (Index Merging across Multiple Fields):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"), where("floor", "==", 1))`.  
-     *Theoretical Defense:* Demonstrates multi-field equality evaluation where Firestore can merge independent single-field B-Tree index scans without strictly requiring a dedicated composite index under default indexing.
-   - **Preset 4 (Composite Index Demonstration):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"), where("capacity", ">=", 50))`.  
-     *Theoretical Defense:* Demonstrates compound queries combining equality and range inequality across distinct fields. This query pattern may require an explicit composite index `(block ASC, capacity ASC, __name__ ASC)` depending on whether the index has already been built in the database. If unindexed, Firestore returns a `FAILED_PRECONDITION` error with a console link to generate the index; if the index is already built, the query succeeds directly against the composite index.
+   - **Preset 3 (Compound Equality via Index Merging):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"), where("floor", "==", 1))`.  
+     *Theoretical Defense:* Demonstrates a compound equality query across multiple fields that may use index merging of independent single-field B-Tree indexes, avoiding the requirement of an explicit composite index under default indexing.
+   - **Preset 4 (Composite Index Evaluation):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"), where("capacity", ">=", 50))`.  
+     *Theoretical Defense:* Demonstrates combining equality with range inequality across distinct fields. A composite index `(block ASC, capacity ASC, __name__ ASC)` may be required, depending on the indexes available in the database. If unindexed, Firestore returns a `FAILED_PRECONDITION` error with a console link to generate the index; if the index is already built, the query succeeds directly against the composite index.
 3. Click **"Execute Server-Side Query on Firestore"**:
    - The system measures live roundtrip latency in real time using `performance.now()`.
    - Results are rendered in a live snapshot table directly from Google Cloud servers.
@@ -115,12 +115,35 @@ The application is pre-configured and connected to the live Firebase project:
 Security rules are defined in [firestore.rules](./firestore.rules):
 ```firestore
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function isAuthorizedAdmin() {
       return request.auth != null 
         && request.auth.token.email == "skrubini5@gmail.com";
+    }
+
+    function isValidSlotsMap(slots) {
+      return slots is map
+        && (!('slot1' in slots) || slots.slot1 in ['available', 'occupied'])
+        && (!('slot2' in slots) || slots.slot2 in ['available', 'occupied'])
+        && (!('slot3' in slots) || slots.slot3 in ['available', 'occupied'])
+        && (!('slot4' in slots) || slots.slot4 in ['available', 'occupied'])
+        && (!('slot5' in slots) || slots.slot5 in ['available', 'occupied'])
+        && (!('slot6' in slots) || slots.slot6 in ['available', 'occupied'])
+        && (!('slot7' in slots) || slots.slot7 in ['available', 'occupied'])
+        && (!('slot8' in slots) || slots.slot8 in ['available', 'occupied'])
+        && (!('slot9' in slots) || slots.slot9 in ['available', 'occupied'])
+        && (!('slot10' in slots) || slots.slot10 in ['available', 'occupied'])
+        && (!('slot11' in slots) || slots.slot11 in ['available', 'occupied'])
+        && (!('slot12' in slots) || slots.slot12 in ['available', 'occupied']);
+    }
+
+    function isValidOptionalFields(data) {
+      return (!('type' in data) || (data.type is string && data.type in ['classroom', 'lab']))
+        && (!('facilities' in data) || data.facilities is list)
+        && (!('updatedAt' in data) || data.updatedAt is timestamp || data.updatedAt is string);
     }
 
     function isValidClassroomData(data) {
@@ -131,18 +154,14 @@ service cloud.firestore {
         && (data.floor is int || data.floor is number) && data.floor >= 0 && data.floor <= 3
         && (data.capacity is int || data.capacity is number) && data.capacity >= 10 && data.capacity <= 200
         && data.status is string && data.status in ['available', 'occupied']
-        && data.slots is map;
+        && isValidSlotsMap(data.slots)
+        && isValidOptionalFields(data);
     }
 
     match /classrooms/{classroomId} {
-      // Public read access for classroom availability
       allow read: if true;
-
-      // Restricted create & update: verified admin + schema & domain validation
       allow create: if isAuthorizedAdmin() && isValidClassroomData(request.resource.data);
       allow update: if isAuthorizedAdmin() && isValidClassroomData(request.resource.data);
-
-      // Restricted delete: verified admin only
       allow delete: if isAuthorizedAdmin();
     }
   }

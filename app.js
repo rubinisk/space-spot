@@ -88,7 +88,7 @@ function initStudentApp() {
   // Bind DBMS Query & Index Inspector
   initDbmsInspector();
 
-  // Initialize real-time collection listener (Index-free architecture)
+  // Initialize real-time collection listener
   initRealtimeClassrooms();
 }
 
@@ -424,7 +424,7 @@ function applyClientFiltersAndRender() {
 }
 
 // ==============================================================================
-// REAL-TIME FIRESTORE LISTENER (INDEX-FREE ARCHITECTURE)
+// REAL-TIME FIRESTORE LISTENER (ONSNAPSHOT)
 // ==============================================================================
 function initRealtimeClassrooms() {
   hideIndexAlert();
@@ -447,8 +447,8 @@ function initRealtimeClassrooms() {
   try {
     const classroomsRef = collection(db, "classrooms");
 
-    // Listening to the collection WITHOUT compound where/orderBy queries
-    // means Cloud Firestore NEVER requests composite indexes!
+    // Listening to the base collection retrieves all documents, while compound queries are demonstrated in the Inspector.
+
     unsubscribeRooms = onSnapshot(
       classroomsRef,
       (snapshot) => {

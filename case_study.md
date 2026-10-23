@@ -83,12 +83,12 @@ query(collection(db, "classrooms"),
       where("capacity", ">=", 60),
       orderBy("capacity", "asc"));
 
-// 3. Two equality filters on different fields (Index merging across single-field indexes)
+// 3. Compound equality query on different fields (May use index merging across single-field indexes)
 query(collection(db, "classrooms"),
       where("block", "==", "A"),
       where("floor", "==", 1));
 
-// 4. Equality and range filter on different fields (Composite Index Scenario)
+// 4. Equality and range filter on different fields (Composite index may be required depending on configuration)
 query(collection(db, "classrooms"),
       where("block", "==", "A"),
       where("capacity", ">=", 50));
@@ -124,7 +124,7 @@ Firestore is managed and scales across infrastructure without application-manage
 | **Triggers** | Cloud Functions can react to document mutations | Platform capability; optional serverless extension |
 | **Integrations** | Firebase SDKs, BigQuery, Vertex AI, and Google Cloud services | Firebase Web SDK v10 used in client |
 
-> **Security Note:** The current rule design permits public reads for campus availability while restricting writes to an authenticated administrator email (`skrubini5@gmail.com`). It validates core classroom fields, floor ranges (0–3), capacity ranges (10–200), and status domains on create and update operations.
+> **Security Note:** The current rule design permits public reads for campus availability while restricting writes to an authenticated administrator email (`skrubini5@gmail.com`). It validates core classroom fields, floor ranges (0–3), capacity ranges (10–200), status domains, individual slot values (`available`/`occupied`), and optional fields (`type`, `facilities`) on create and update operations.
 
 ---
 
