@@ -1,11 +1,7 @@
-# 📊 Comprehensive Case Study & Presentation Guide on Cloud Firestore
+# Comprehensive Case Study & Presentation Guide on Cloud Firestore
 ## Subject: Database Management Systems (DBMS) – Case Study & Project Presentation
 **Project Name:** SpaceSpot – Smart Classroom Availability Finder  
 **Selected Database:** Google Cloud Firestore (NoSQL Document-Oriented Database)  
-
----
-
-# 📑 PART 1: COMPLETE ACADEMIC CASE STUDY (SECTIONS 1 – 11)
 
 ---
 
