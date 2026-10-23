@@ -5,9 +5,9 @@
 // 1. READ OPERATION (CRUD): Real-Time Snapshot Listener (onSnapshot) on collection "classrooms".
 // 2. NOSQL JOIN EQUIVALENT: Solves multi-table relational joins via document denormalization 
 //    and client-side projection of embedded slots map & facilities array.
-// 3. INDEXING STRATEGY: Demonstrates automated single-field B-Tree indexing combined with
-//    zero-index reactive client streaming to prevent composite index bottlenecks.
-// 4. PERFORMANCE: Dual-engine loader (Direct REST fetch for fast initial display).
+// 3. INDEXING STRATEGY: Demonstrates automated single-field B-Tree indexing and index merging,
+//    complemented by real-time client streaming and in-memory projection.
+// 4. DATA RETRIEVAL: Direct REST fetch for initial room display followed by active onSnapshot subscription.
 // 5. 12-Slot College Schedule integration (8:00 AM - 6:15 PM) with live active period tracker.
 // ==============================================================================
 

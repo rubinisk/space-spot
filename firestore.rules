@@ -1,29 +1,29 @@
 rules_version = '2';
 
-// ==============================================================================
-// SpaceSpot – Cloud Firestore Security & Integrity Rules
-// ==============================================================================
-// DBMS Criteria Addressed:
-// 1. Role-Based Access Control (RBAC):
-//    - Public read access for students, faculty, and guests.
-//    - Restricted write permissions limited to verified admin (skrubini5@gmail.com).
-// 2. Database-Level Integrity Constraints (Schema & Domain Validation):
-//    - Required fields: name, block, floor, capacity, status, slots.
-//    - Allowed fields only: prevents unexpected additional fields.
-//    - Field types and domain validation:
-//        * name: string, 2-20 characters
-//        * block: string in ['A', 'C', 'D', 'F']
-//        * floor: integer 0 to 3
-//        * capacity: integer 10 to 200 seats
-//        * status: string in ['available', 'occupied']
-//        * slots: map containing time slot entries
-//        * type (optional): string in ['classroom', 'lab']
-//        * facilities (optional): list
-//        * updatedAt (optional): timestamp
-// ==============================================================================
-
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ==============================================================================
+    // SpaceSpot — Cloud Firestore Security & Integrity Rules
+    // ==============================================================================
+    // DBMS Criteria Addressed:
+    // 1. Role-Based Access Control (RBAC):
+    //    - Public read access for students, faculty, and guests.
+    //    - Restricted write permissions limited to verified admin (skrubini5@gmail.com).
+    // 2. Database-Level Integrity Constraints (Schema & Domain Validation):
+    //    - Required fields: name, block, floor, capacity, status, slots.
+    //    - Allowed fields only: prevents unexpected additional fields.
+    //    - Field types and domain validation:
+    //        * name: string, 2-20 characters
+    //        * block: string in ['A', 'C', 'D', 'F']
+    //        * floor: integer 0 to 3
+    //        * capacity: integer 10 to 200 seats
+    //        * status: string in ['available', 'occupied']
+    //        * slots: map containing time slot entries
+    //        * type (optional): string in ['classroom', 'lab']
+    //        * facilities (optional): list
+    //        * updatedAt (optional): timestamp
+    // ==============================================================================
 
     // Helper: Verify administrator identity via authenticated email
     function isAuthorizedAdmin() {
@@ -45,7 +45,6 @@ service cloud.firestore {
 
     // Classrooms Collection
     match /classrooms/{classroomId} {
-      
       // PUBLIC READ: Anyone can query and read real-time classroom availability
       allow read: if true;
 

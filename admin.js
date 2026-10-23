@@ -275,7 +275,7 @@ function setupEventListeners() {
 }
 
 // ==============================================================================
-// READ OPERATION: REAL-TIME CLASSROOM LISTENER (onSnapshot & Fast Direct Fetch)
+// READ OPERATION: REAL-TIME CLASSROOM LISTENER (onSnapshot & Direct Fetch)
 // ==============================================================================
 async function fetchDirectAdminRooms() {
   try {

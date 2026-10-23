@@ -75,9 +75,9 @@ Use this step-by-step sequence during your presentation to demonstrate all datab
    - **Preset 2 (Range & Sorting on Same Field):** Executes `query(collection(db, "classrooms"), where("capacity", ">=", 60), orderBy("capacity", "asc"))`.  
      *Theoretical Defense:* Demonstrates range inequality filtering combined with index ordering on the same field using a single-field B-Tree.
    - **Preset 3 (Index Merging across Multiple Fields):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"), where("floor", "==", 1))`.  
-     *Theoretical Defense:* Demonstrates Firestore index merging intersecting two independent single-field B-Tree indexes without requiring a composite index.
-   - **Preset 4 (Composite Index Requirement Demo):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"), where("capacity", ">=", 50))`.  
-     *Theoretical Defense:* Demonstrates when Firestore requires a multi-column composite index `(block ASC, capacity ASC, __name__ ASC)` for combining equality with range inequality across different fields. When the index is unbuilt, captures the Google Cloud `FAILED_PRECONDITION` error with the direct index generation URL; once created in the Firebase Console, the query executes directly against the composite index.
+     *Theoretical Defense:* Demonstrates multi-field equality evaluation where Firestore can merge independent single-field B-Tree index scans without strictly requiring a dedicated composite index under default indexing.
+   - **Preset 4 (Composite Index Demonstration):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"), where("capacity", ">=", 50))`.  
+     *Theoretical Defense:* Demonstrates compound queries combining equality and range inequality across distinct fields. This query pattern may require an explicit composite index `(block ASC, capacity ASC, __name__ ASC)` depending on whether the index has already been built in the database. If unindexed, Firestore returns a `FAILED_PRECONDITION` error with a console link to generate the index; if the index is already built, the query succeeds directly against the composite index.
 3. Click **"Execute Server-Side Query on Firestore"**:
    - The system measures live roundtrip latency in real time using `performance.now()`.
    - Results are rendered in a live snapshot table directly from Google Cloud servers.

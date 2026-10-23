@@ -88,13 +88,13 @@ query(collection(db, "classrooms"),
       where("block", "==", "A"),
       where("floor", "==", 1));
 
-// 4. Equality and range filter on different fields (Requires Composite Index)
+// 4. Equality and range filter on different fields (Composite Index Scenario)
 query(collection(db, "classrooms"),
       where("block", "==", "A"),
       where("capacity", ">=", 50));
 ```
 
-When the required index has not yet been generated in Firebase, Cloud Firestore returns a `FAILED_PRECONDITION` error with a direct link to the Firebase Console to build the required composite index `(block ASC, capacity ASC, __name__ ASC)`. Once generated, the query executes directly against the composite index. This cleanly illustrates the operational distinction between automatic single-field indexing, index merging, and composite index requirements.
+Depending on whether the composite index has already been configured in the database, this query pattern either executes directly against an existing composite index or returns a `FAILED_PRECONDITION` error with a direct link to the Firebase Console to build `(block ASC, capacity ASC, __name__ ASC)`. This cleanly illustrates the operational distinction between automatic single-field indexing, index merging, and composite index requirements.
 
 ### 3.3 Query Processing and Optimization
 Firestore uses indexes to avoid scanning every document for supported queries. The number of returned documents, index entries examined, network conditions, and query design affect latency. The claim that every Firestore query runs in constant or $O(k)$ time is not a universal guarantee, as index key lookups scale logarithmically ($O(\log N)$) before matching documents are streamed. SpaceSpot also filters its downloaded room collection in browser memory for interactive UI selections; this is client-side projection, not a new server database query.
@@ -235,7 +235,7 @@ await deleteDoc(doc(db, "classrooms", roomId));
 ```
 
 ### 7.4 Indexing Demonstration
-Run the four queries from Section 3.2 using the Query & Index Inspector in `index.html`. Capture the query, returned documents, and any index requirement. When executing `where("block", "==", "A")` and `where("capacity", ">=", 50)`, demonstrate Firestore's error response requiring a composite index, showing the generated link in the Firebase Console.
+Run the four queries from Section 3.2 using the Query & Index Inspector in `index.html`. Capture the query, returned documents, and any index requirement. When executing `where("block", "==", "A")` and `where("capacity", ">=", 50)`, explain that this query pattern may require an explicit composite index depending on whether it has already been generated in the project. If unindexed, demonstrate the Firebase Console generation link; if already indexed, demonstrate the resulting document stream.
 
 ### 7.5 Authentication, Authorization, and Integrity Demonstration
 1. Sign in with the designated administrator account (`skrubini5@gmail.com`) and perform a valid room slot update.
