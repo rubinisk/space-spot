@@ -318,16 +318,39 @@ function parseAdminRestDoc(doc) {
   };
 }
 
+function isValidCampusRoom(room) {
+  if (!room || !room.name) return false;
+  const name = String(room.name).toUpperCase().trim();
+  const block = String(room.block || "").toUpperCase().trim();
+
+  // Exclude staff rooms (Blocks B & E)
+  if (block === "B" || block === "E" || name.startsWith("B-") || name.startsWith("E-")) {
+    return false;
+  }
+
+  // Exclude non-existent room numbers (101, 202, 303, 404)
+  const parts = name.split("-");
+  const num = parts.length > 1 ? parts[1].trim() : "";
+  if (num === "101" || num === "202" || num === "303" || num === "404") {
+    return false;
+  }
+
+  return true;
+}
+
 function renderAdminTableFromRooms(rooms) {
   cachedRoomsMap.clear();
 
-  if (rooms.length === 0) {
+  // Filter out any legacy invalid rooms
+  const validRooms = rooms.filter(isValidCampusRoom);
+
+  if (validRooms.length === 0) {
     adminTableBody.innerHTML = `
       <tr>
         <td colspan="7" style="text-align:center; padding: 2.5rem; color: var(--text-muted);">
-          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📭</div>
-          <strong>No classrooms in database.</strong><br>
-          Click "Add Classroom" or "Seed Campus Rooms" to populate records.
+          <div style="font-size: 1.1rem; margin-bottom: 0.5rem; color:var(--primary); font-weight:700;">Database Ready for Seeding</div>
+          <strong>No official campus classrooms found.</strong><br>
+          Click <strong>"Reset & Seed Campus Database"</strong> to populate the 16 classrooms and labs across Blocks A, C, D, and F.
         </td>
       </tr>
     `;
@@ -343,9 +366,9 @@ function renderAdminTableFromRooms(rooms) {
   let occupiedCount = 0;
 
   // Sort by name
-  rooms.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  validRooms.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
-  rooms.forEach(room => {
+  validRooms.forEach(room => {
     cachedRoomsMap.set(room.id, room);
     totalCount++;
 
@@ -450,13 +473,13 @@ function createAdminTableRow(id, room) {
   tr.innerHTML = `
     <td>
       <strong>${escapeHtml(room.name || "Unnamed")}</strong>
-      ${isLab ? `<span class="badge-tag" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:0.65rem; margin-left:4px;">🔬 Lab</span>` : ''}
+      ${isLab ? `<span class="badge-tag" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:0.65rem; margin-left:4px;">Laboratory</span>` : ''}
     </td>
     <td>
       <span>Block ${escapeHtml(room.block || "-")} &bull; ${formatFloorName(room.floor)}</span>
     </td>
     <td>
-      <span>🪑 ${room.capacity ?? 0}</span>
+      <span>${room.capacity ?? 0} seats</span>
     </td>
     <td>
       <div style="display:flex; flex-wrap:wrap; gap:0.25rem; max-width:220px;">
@@ -475,10 +498,10 @@ function createAdminTableRow(id, room) {
     <td>
       <div class="action-btn-group">
         <button class="btn btn-outline btn-sm" data-action="edit" data-id="${id}" title="Edit classroom details">
-          ✏️ Edit
+          Edit
         </button>
         <button class="btn btn-outline btn-sm" style="color:var(--occupied-dot);" data-action="delete" data-id="${id}" title="Delete classroom">
-          🗑️
+          Delete
         </button>
       </div>
     </td>
@@ -630,22 +653,22 @@ async function handleConfirmDelete() {
 // SEEDING DATABASE: seedClassrooms() from seed.js
 // ==============================================================================
 async function handleSeedDatabase() {
-  const confirmed = confirm("Seed sample classrooms & labs across Blocks A, C, D, and F (Ground – 3rd Floors) with 12-slot schedules?");
+  const confirmed = confirm("This will purge old test data and seed the 16 official campus classrooms & labs (Blocks A, C, D, F, Floors 0–3, with 12 time slots). Proceed?");
   if (!confirmed) return;
 
   btnSeedData.disabled = true;
-  btnSeedData.textContent = "🌱 Seeding...";
+  btnSeedData.textContent = "Resetting & Seeding...";
 
   try {
     // Calls batch seeding function in seed.js
     const count = await seedClassrooms(db, serverTimestamp);
-    showToast(`Successfully seeded ${count} sample rooms across Blocks A, C, D, and F!`, "success");
+    showToast(`Database reset successfully with ${count} official campus classrooms!`, "success");
   } catch (error) {
     console.error("Error seeding classrooms:", error);
     showToast(`Seeding failed: ${error.message}`, "error");
   } finally {
     btnSeedData.disabled = false;
-    btnSeedData.innerHTML = `<span>🌱</span><span>Seed Campus Rooms</span>`;
+    btnSeedData.innerHTML = `<span>Reset & Seed Campus Database</span>`;
   }
 }
 
@@ -722,9 +745,8 @@ function showToast(message, type = "info") {
   const toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
 
-  const icon = type === "success" ? "✓" : type === "error" ? "✕" : "ℹ️";
+  const icon = type === "success" ? "" : type === "error" ? "" : "";
   toast.innerHTML = `
-    <span style="font-weight:700;">${icon}</span>
     <span>${escapeHtml(message)}</span>
   `;
 

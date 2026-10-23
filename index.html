@@ -16,7 +16,7 @@
         warningBanner.style.cssText = 'background: #fef2f2; border-bottom: 2px solid #ef4444; color: #991b1b; padding: 1.1rem 1.5rem; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15); position: sticky; top: 0; z-index: 1000;';
         warningBanner.innerHTML = `
           <div style="max-width: 1200px; margin: 0 auto; display: flex; align-items: flex-start; gap: 1rem;">
-            <span style="font-size: 2rem; line-height: 1;">🚨</span>
+            <div style="font-weight:700; color:#ef4444; font-size:1.1rem; padding-top:2px;">[Notice]</div>
             <div>
               <strong style="font-size: 1.1rem;">Live Server Required: Browsers Block Firebase on file:/// URLs</strong>
               <p style="margin: 0.35rem 0 0.75rem; color: #7f1d1d; line-height: 1.5;">
@@ -24,7 +24,7 @@
                 Modern web browsers strictly block native JavaScript modules and Firebase connections on <code>file:///</code> due to CORS security policies.
               </p>
               <div style="background: white; border: 1px solid #fecaca; border-radius: 8px; padding: 0.85rem 1.1rem; color: #1e293b;">
-                <strong>👉 How to open with VS Code Live Server in 2 clicks:</strong>
+                <strong>How to open with VS Code Live Server in 2 clicks:</strong>
                 <ol style="margin: 0.4rem 0 0 1.25rem; line-height: 1.7; font-size: 0.875rem;">
                   <li>Open your <strong>SpaceSpot</strong> project folder in <strong>VS Code</strong>.</li>
                   <li>In the VS Code left sidebar, right-click on <strong>index.html</strong> and click <strong>"Open with Live Server"</strong> (or click <strong>"Go Live"</strong> on the bottom blue bar).</li>
@@ -41,14 +41,13 @@
         if (roomsGrid) {
           roomsGrid.innerHTML = `
             <div class="empty-state" style="border-color: #ef4444; background: #fff5f5;">
-              <div class="empty-icon">🚨</div>
               <h3 class="empty-title" style="color: #991b1b;">Live Server Required</h3>
               <p class="empty-desc" style="max-width: 520px; margin: 0 auto 1.25rem; color: #7f1d1d; line-height: 1.6;">
                 Browser security prevents Firebase from connecting when opened via <code>file:///</code>. 
                 Please right-click <strong>index.html</strong> in VS Code and choose <strong>"Open with Live Server"</strong>.
               </p>
               <a href="http://127.0.0.1:5500/index.html" class="btn btn-primary" style="background: #dc2626;">
-                🚀 Open http://127.0.0.1:5500/index.html
+                Open http://127.0.0.1:5500/index.html
               </a>
             </div>
           `;
@@ -61,7 +60,13 @@
   <header class="navbar">
     <div class="container navbar-inner">
       <a href="index.html" class="brand">
-        <div class="brand-icon">🏫</div>
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21h18"/>
+            <path d="M5 21V7l7-4 7 4v14"/>
+            <path d="M9 10a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v11H9z"/>
+          </svg>
+        </div>
         <div class="brand-text">
           <h1>SpaceSpot</h1>
           <p>Smart Classroom Availability Finder</p>
@@ -75,7 +80,6 @@
         </a>
         <a href="admin.html" class="nav-link">
           <span>Admin Portal</span>
-          <span>🔐</span>
         </a>
       </nav>
     </div>
@@ -97,7 +101,7 @@
   <div id="config-warning" class="config-banner hidden">
     <div class="container" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
       <span>
-        ⚠️ <strong>Firebase Not Configured:</strong> Paste your Firebase Project credentials in 
+        <strong>Firebase Configuration Notice:</strong> Paste your Firebase Project credentials in 
         <code>firebase-config.js</code> to enable live Firestore data sync.
       </span>
       <a href="admin.html" style="color: inherit; text-decoration: underline; font-weight:700;">Admin Setup</a>
@@ -121,7 +125,9 @@
       <!-- Quick Metrics Counters -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon available">✓</div>
+          <div class="stat-icon available">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
           <div>
             <div class="stat-label" id="stat-available-label">Free in Selected Slot</div>
             <div class="stat-value" id="stat-available">-</div>
@@ -129,7 +135,9 @@
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon occupied">✕</div>
+          <div class="stat-icon occupied">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </div>
           <div>
             <div class="stat-label" id="stat-occupied-label">Occupied in Slot</div>
             <div class="stat-value" id="stat-occupied">-</div>
@@ -137,7 +145,9 @@
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon total">🏢</div>
+          <div class="stat-icon total">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+          </div>
           <div>
             <div class="stat-label">Total Monitored</div>
             <div class="stat-value" id="stat-total">-</div>
@@ -148,7 +158,7 @@
       <!-- Live College Time & Active Slot Banner -->
       <div class="slot-banner">
         <div class="slot-banner-left">
-          <span>⏰</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           <span id="current-clock-display">College Schedule: 12 Period Slots (8:00 AM – 6:15 PM)</span>
         </div>
         <div id="active-slot-indicator" class="slot-banner-badge">
@@ -159,11 +169,11 @@
       <!-- Quick Slot Pills Scroller -->
       <div style="margin-top: 1rem;">
         <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em; margin-bottom: 0.35rem;">
-          ⚡ Quick Period Filter (Click any slot to find free rooms):
+          Filter by Academic Period:
         </div>
         <div class="slot-pills-container" id="slot-pills-bar">
           <button type="button" class="btn-slot-pill active" id="pill-CURRENT">
-            <span class="slot-pill-title">⚡ Current Slot</span>
+            <span class="slot-pill-title">Current Period</span>
             <span class="slot-pill-time">Auto-detect</span>
           </button>
           <button type="button" class="btn-slot-pill" id="pill-slot1"><span class="slot-pill-title">Slot 1</span><span class="slot-pill-time">8:00 - 8:50</span></button>
@@ -172,7 +182,7 @@
           <button type="button" class="btn-slot-pill" id="pill-slot4"><span class="slot-pill-title">Slot 4</span><span class="slot-pill-time">10:45 - 11:35</span></button>
           <button type="button" class="btn-slot-pill" id="pill-slot5"><span class="slot-pill-title">Slot 5</span><span class="slot-pill-time">11:35 - 12:25</span></button>
           <button type="button" class="btn-slot-pill" id="pill-slot6"><span class="slot-pill-title">Slot 6</span><span class="slot-pill-time">12:25 - 1:15</span></button>
-          <button type="button" class="btn-slot-pill" id="pill-slot7"><span class="slot-pill-title">Slot 7 🍱</span><span class="slot-pill-time">1:15 - 2:05 (Lunch)</span></button>
+          <button type="button" class="btn-slot-pill" id="pill-slot7"><span class="slot-pill-title">Slot 7 (Lunch)</span><span class="slot-pill-time">1:15 - 2:05</span></button>
           <button type="button" class="btn-slot-pill" id="pill-slot8"><span class="slot-pill-title">Slot 8</span><span class="slot-pill-time">2:05 - 2:55</span></button>
           <button type="button" class="btn-slot-pill" id="pill-slot9"><span class="slot-pill-title">Slot 9</span><span class="slot-pill-time">2:55 - 3:45</span></button>
           <button type="button" class="btn-slot-pill" id="pill-slot10"><span class="slot-pill-title">Slot 10</span><span class="slot-pill-time">3:45 - 4:35</span></button>
@@ -186,11 +196,10 @@
     <section class="filter-card">
       <div class="filter-header">
         <div class="filter-title">
-          <span>🔍</span>
           <span>Find Available Classrooms</span>
         </div>
         <button id="btn-reset-filters" class="btn btn-ghost btn-sm" type="button">
-          ↺ Reset Filters
+          Reset Filters
         </button>
       </div>
 
@@ -199,7 +208,7 @@
         <div class="form-group">
           <label for="filter-slot">College Time Slot</label>
           <select id="filter-slot" class="form-control" style="font-weight: 600;">
-            <option value="CURRENT">⚡ Current Active Slot (Auto)</option>
+            <option value="CURRENT">Current Active Period (Auto)</option>
             <option value="slot1">Slot 1 (8:00 - 8:50)</option>
             <option value="slot2">Slot 2 (8:50 - 9:40)</option>
             <option value="slot3">Slot 3 (9:40 - 10:30)</option>
@@ -290,18 +299,18 @@
 
       <!-- Composite Index Error Alert (Dynamically Shown if Firestore requests composite index) -->
       <div id="index-error-box" class="index-alert hidden" style="margin-top: 1.5rem;">
-        <h4>⚠️ Firestore Composite Index Required</h4>
+        <h4>Firestore Composite Index Notice</h4>
         <p id="index-error-msg">
           This specific combination of filters and sorting requires a Firestore Composite Index.
         </p>
         <a id="index-error-link" href="#" target="_blank" rel="noopener noreferrer">
-          ⚡ Click here to automatically create the Index in Firebase Console &rarr;
+          Click here to generate the Index in Firebase Console &rarr;
         </a>
       </div>
     </section>
   </main>
 
   <!-- Student App Logic (Vanilla JavaScript ES Module) -->
-  <script type="module" src="app.js?v=3.0"></script>
+  <script type="module" src="app.js?v=4.0"></script>
 </body>
 </html>

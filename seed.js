@@ -22,7 +22,8 @@
 import { 
   collection, 
   doc, 
-  writeBatch 
+  writeBatch,
+  getDocs 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 export const sampleClassrooms = [
@@ -262,23 +263,39 @@ export const sampleClassrooms = [
 /**
  * Seed sample classrooms into the Firestore 'classrooms' collection.
  * Conforms to the campus layout: Blocks A, C, D, F and Floors 0, 1, 2, 3.
+ * Automatically purges any legacy test records (e.g. A-101, B-block, etc.) before writing.
  * 
  * @param {Firestore} db - Firestore database instance
  * @param {Function} serverTimestamp - Firestore serverTimestamp helper
  * @returns {Promise<number>} - Count of seeded classrooms
  */
 export async function seedClassrooms(db, serverTimestamp) {
-  const batch = writeBatch(db);
   const classroomsCollection = collection(db, "classrooms");
 
+  // Step 1: Wipe all legacy/test documents to eliminate ghost rooms
+  try {
+    const existingSnap = await getDocs(classroomsCollection);
+    if (!existingSnap.empty) {
+      const deleteBatch = writeBatch(db);
+      existingSnap.forEach(d => {
+        deleteBatch.delete(d.ref);
+      });
+      await deleteBatch.commit();
+    }
+  } catch (err) {
+    console.warn("Notice during database wipe:", err);
+  }
+
+  // Step 2: Write all 16 official campus classrooms and labs
+  const insertBatch = writeBatch(db);
   for (const room of sampleClassrooms) {
     const newDocRef = doc(classroomsCollection);
-    batch.set(newDocRef, {
+    insertBatch.set(newDocRef, {
       ...room,
       updatedAt: serverTimestamp()
     });
   }
 
-  await batch.commit();
+  await insertBatch.commit();
   return sampleClassrooms.length;
 }

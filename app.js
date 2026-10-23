@@ -101,11 +101,11 @@ function initSlotClockTracker() {
     const currentSlot = getCurrentSlot();
 
     if (currentSlot) {
-      currentClockDisplay.textContent = `Current Time: ${timeStr} • Campus Day Active`;
-      activeSlotIndicator.innerHTML = `🟢 <strong>Live:</strong> ${currentSlot.name} (${currentSlot.time})`;
+      currentClockDisplay.textContent = `Current Time: ${timeStr} • Active Campus Hours`;
+      activeSlotIndicator.innerHTML = `<strong>Active:</strong> ${currentSlot.name} (${currentSlot.time})`;
     } else {
-      currentClockDisplay.textContent = `Current Time: ${timeStr} • College Hours: 8:00 AM – 6:15 PM`;
-      activeSlotIndicator.innerHTML = `🌙 College Inactive (Next: Slot 1 @ 8:00 AM)`;
+      currentClockDisplay.textContent = `Current Time: ${timeStr} • Campus Hours: 8:00 AM – 6:15 PM`;
+      activeSlotIndicator.innerHTML = `Campus Schedule Inactive (Next: Slot 1 @ 8:00 AM)`;
     }
   }
 
@@ -126,7 +126,7 @@ function renderSlotPillScroller() {
   autoBtn.className = "btn-slot-pill active";
   autoBtn.id = "pill-CURRENT";
   autoBtn.innerHTML = `
-    <span class="slot-pill-title">⚡ Current Slot</span>
+    <span class="slot-pill-title">Current Period</span>
     <span class="slot-pill-time">Auto-detect</span>
   `;
   autoBtn.addEventListener("click", () => {
@@ -143,7 +143,7 @@ function renderSlotPillScroller() {
     pill.className = "btn-slot-pill";
     pill.id = `pill-${slot.id}`;
     pill.innerHTML = `
-      <span class="slot-pill-title">${slot.name}${slot.isLunch ? " 🍱" : ""}</span>
+      <span class="slot-pill-title">${slot.name}${slot.isLunch ? " (Lunch)" : ""}</span>
       <span class="slot-pill-time">${slot.time}</span>
     `;
     pill.addEventListener("click", () => {
@@ -303,6 +303,30 @@ function parseRestDoc(doc) {
   };
 }
 
+// Validation for Official Campus Layout:
+// - Blocks: A, C, D, F only (B and E are Staff Rooms and excluded).
+// - Exclude non-existent rooms: 101, 202, 303, 404.
+// - Floor 0 (Ground: 102, 103, 104); Floor 1 (1st: 201, 203, 204); Floor 2 (2nd: 301, 302, 304); Floor 3 (3rd: 401, 402, 403).
+function isValidCampusRoom(room) {
+  if (!room || !room.name) return false;
+  const name = String(room.name).toUpperCase().trim();
+  const block = String(room.block || "").toUpperCase().trim();
+
+  // Exclude staff rooms (Blocks B & E)
+  if (block === "B" || block === "E" || name.startsWith("B-") || name.startsWith("E-")) {
+    return false;
+  }
+
+  // Exclude non-existent room numbers
+  const parts = name.split("-");
+  const num = parts.length > 1 ? parts[1].trim() : "";
+  if (num === "101" || num === "202" || num === "303" || num === "404") {
+    return false;
+  }
+
+  return true;
+}
+
 // ==============================================================================
 // IN-MEMORY FILTERING & SORTING (INDEX-FREE, 0ms LATENCY)
 // ==============================================================================
@@ -315,6 +339,9 @@ function filterAndSortRooms(roomsList) {
   const desiredStatus = filterStatus.value;
 
   const filtered = roomsList.filter(room => {
+    // 0. Enforce official campus room layout (filters out legacy test data like A-101)
+    if (!isValidCampusRoom(room)) return false;
+
     // 1. Block Filter
     if (selectedBlock !== "ALL" && room.block !== selectedBlock) return false;
 
@@ -356,7 +383,7 @@ function renderRoomsFromList(roomsList, effectiveSlot = getEffectiveSlot()) {
   if (count === 0) {
     if (allRoomsCache.length === 0) {
       renderEmptyState(
-        `Your Cloud Firestore database is currently empty.<br>Open the <strong>Admin Portal</strong> and click <strong>"🌱 Seed Campus Rooms"</strong> to populate all 16 classrooms and labs!`,
+        `The classroom database is currently empty.<br>Open the <strong>Admin Portal</strong> and click <strong>"Seed Campus Database"</strong> to populate all 16 classrooms and labs.`,
         true
       );
     } else {
@@ -423,7 +450,7 @@ function initRealtimeClassrooms() {
           allRoomsCache = [];
           resultsCountText.textContent = "No classrooms in database";
           renderEmptyState(
-            `Your Cloud Firestore database is currently empty.<br>Open the <strong>Admin Portal</strong> and click <strong>"🌱 Seed Campus Rooms"</strong> to populate all 16 classrooms and labs!`,
+            `The classroom database is currently empty.<br>Open the <strong>Admin Portal</strong> and click <strong>"Seed Campus Database"</strong> to populate all 16 classrooms and labs.`,
             true
           );
           updateStatsRibbon();
@@ -435,7 +462,8 @@ function initRealtimeClassrooms() {
           updatedRooms.push({ id: docSnap.id, ...docSnap.data() });
         });
 
-        allRoomsCache = updatedRooms;
+        // Ensure only official campus rooms are cached
+        allRoomsCache = updatedRooms.filter(isValidCampusRoom);
         applyClientFiltersAndRender();
       },
       (error) => {
@@ -484,7 +512,7 @@ function createRoomCardElement(id, room, effectiveSlot) {
 
   const facilitiesList = Array.isArray(room.facilities) ? room.facilities : [];
   const facilitiesHtml = facilitiesList.length > 0 
-    ? facilitiesList.map(f => `<span class="facility-chip">${getFacilityIcon(f)} ${escapeHtml(f)}</span>`).join("")
+    ? facilitiesList.map(f => `<span class="facility-chip">${escapeHtml(f)}</span>`).join("")
     : `<span class="facility-chip" style="color:var(--text-light)">Standard Desk Setup</span>`;
 
   // Build 12-Slot Schedule Timeline Matrix
@@ -492,7 +520,7 @@ function createRoomCardElement(id, room, effectiveSlot) {
     const status = getRoomStatusForSlot(room, slot.id);
     const isFree = status === "available";
     const isFiltered = effectiveSlot && effectiveSlot.id === slot.id;
-    const title = `${slot.name} (${slot.time}): ${isFree ? 'FREE' : 'OCCUPIED'}`;
+    const title = `${slot.name} (${slot.time}): ${isFree ? 'AVAILABLE' : 'OCCUPIED'}`;
 
     return `
       <div 
@@ -514,10 +542,10 @@ function createRoomCardElement(id, room, effectiveSlot) {
       <div class="room-name-wrapper">
         <div style="display:flex; align-items:center; gap:0.4rem;">
           <h3 class="room-name">${escapeHtml(room.name || "Room")}</h3>
-          ${isLab ? `<span class="badge-tag" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:0.65rem;">🔬 Lab</span>` : ''}
+          ${isLab ? `<span class="badge-tag" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:0.65rem;">Laboratory</span>` : ''}
         </div>
         <div class="room-location">
-          <span>🏛️ Block ${escapeHtml(room.block || "-")}</span>
+          <span>Block ${escapeHtml(room.block || "-")}</span>
           <span>&bull;</span>
           <span>${formatFloorName(room.floor)}</span>
         </div>
@@ -529,12 +557,15 @@ function createRoomCardElement(id, room, effectiveSlot) {
     </div>
 
     <!-- Active Slot Indicator on Card -->
-    <div style="font-size: 0.775rem; font-weight: 700; color: ${isAvailable ? 'var(--available-text)' : 'var(--occupied-text)'}; margin-bottom: 0.75rem;">
-      ${isAvailable ? '🟢 Free' : '🔴 Busy'}: ${escapeHtml(slotHeaderLabel)}
+    <div style="font-size: 0.775rem; font-weight: 700; color: ${isAvailable ? 'var(--available-text)' : 'var(--occupied-text)'}; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.35rem;">
+      <span class="badge-dot" style="background:${isAvailable ? '#10b981' : '#dc2626'};"></span>
+      <span>${isAvailable ? 'Available' : 'Occupied'}: ${escapeHtml(slotHeaderLabel)}</span>
     </div>
 
     <div class="room-capacity-bar">
-      <span class="capacity-icon">🪑</span>
+      <span class="capacity-icon" style="display:inline-flex; align-items:center;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      </span>
       <span class="capacity-text">${room.capacity ?? 0} Seats</span>
       <span class="capacity-sub">Capacity</span>
     </div>
@@ -559,7 +590,7 @@ function createRoomCardElement(id, room, effectiveSlot) {
 
     <div class="card-footer-row">
       <span>Updated: ${updatedTimeText}</span>
-      <span>${isAvailable ? "🟢 Open for Study/Class" : "🔴 Session in Progress"}</span>
+      <span>${isAvailable ? "Open for Study / Class" : "Class Session in Progress"}</span>
     </div>
   `;
 
@@ -624,14 +655,18 @@ function renderLoadingState() {
 }
 
 function renderEmptyState(message, isDatabaseEmpty = false) {
+  const iconSvg = isDatabaseEmpty
+    ? `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 10a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v11H9z"/></svg>`
+    : `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`;
+
   roomsGrid.innerHTML = `
     <div class="empty-state">
-      <div class="empty-icon">${isDatabaseEmpty ? "🌱" : "🔍"}</div>
+      <div class="empty-icon" style="color:var(--text-muted); display:flex; justify-content:center;">${iconSvg}</div>
       <h3 class="empty-title">${isDatabaseEmpty ? "Classroom Database is Empty" : "No Matching Rooms Found"}</h3>
       <p class="empty-desc" style="max-width: 480px; margin: 0 auto 1.5rem; line-height: 1.6;">${message}</p>
       ${isDatabaseEmpty
-        ? `<a href="admin.html" class="btn btn-primary btn-sm">🔐 Open Admin to Seed Rooms &rarr;</a>`
-        : `<button class="btn btn-outline btn-sm" onclick="document.getElementById('btn-reset-filters').click()">↺ Reset All Filters</button>`
+        ? `<a href="admin.html" class="btn btn-primary btn-sm">Open Admin to Seed Rooms &rarr;</a>`
+        : `<button class="btn btn-outline btn-sm" onclick="document.getElementById('btn-reset-filters').click()">Reset All Filters</button>`
       }
     </div>
   `;
@@ -640,7 +675,9 @@ function renderEmptyState(message, isDatabaseEmpty = false) {
 function renderNotConfiguredState() {
   roomsGrid.innerHTML = `
     <div class="empty-state">
-      <div class="empty-icon">⚙️</div>
+      <div class="empty-icon" style="color:var(--text-muted); display:flex; justify-content:center;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </div>
       <h3 class="empty-title">Firebase Configuration Required</h3>
       <p class="empty-desc">
         Please open <code>firebase-config.js</code> and paste your Firebase Project API credentials to connect to Cloud Firestore.
@@ -656,17 +693,19 @@ function renderNotConfiguredState() {
 function renderConnectionDelayedState() {
   roomsGrid.innerHTML = `
     <div class="empty-state">
-      <div class="empty-icon">⏳</div>
+      <div class="empty-icon" style="color:var(--text-muted); display:flex; justify-content:center;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
       <h3 class="empty-title">Initial Connection Delayed</h3>
       <p class="empty-desc">
-        Firestore is taking a moment to connect. If this persists, ensure your browser is not blocking Google Firebase domains or reload the page.
+        Firestore is establishing a secure connection. If this persists, verify your network connectivity or reload the page.
       </p>
       <div style="display:flex; justify-content:center; gap:0.5rem; margin-top:1rem;">
         <button class="btn btn-primary btn-sm" onclick="location.reload()">
-          🔄 Reload Page
+          Reload Page
         </button>
         <a href="admin.html" class="btn btn-outline btn-sm">
-          🔐 Open Admin Portal
+          Open Admin Portal
         </a>
       </div>
     </div>
@@ -678,15 +717,7 @@ function renderConnectionDelayedState() {
 // HELPER UTILITIES
 // ==============================================================================
 function getFacilityIcon(name) {
-  const lower = (name || "").toLowerCase();
-  if (lower.includes("projector")) return "📽️";
-  if (lower.includes("ac") || lower.includes("air")) return "❄️";
-  if (lower.includes("smart") || lower.includes("board")) return "📟";
-  if (lower.includes("mic") || lower.includes("audio") || lower.includes("sound")) return "🎙️";
-  if (lower.includes("computer") || lower.includes("lab")) return "💻";
-  if (lower.includes("podium")) return "🎙️";
-  if (lower.includes("wifi") || lower.includes("wi-fi")) return "📶";
-  return "✨";
+  return ""; // Clean textual chips without cartoon emojis
 }
 
 function formatRelativeTime(date) {
