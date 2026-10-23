@@ -8,22 +8,34 @@ rules_version = '2';
 //    - Public read access for students, faculty, and guests.
 //    - Restricted write permissions limited to verified admin (skrubini5@gmail.com).
 // 2. Database-Level Integrity Constraints (Schema & Domain Validation):
-//    - Field existence and type validation (name, block, floor, capacity, status, slots).
-//    - Domain constraint validation:
-//        * block must be in ['A', 'C', 'D', 'F']
-//        * floor must be between 0 (Ground) and 3 (3rd Floor)
-//        * capacity must be between 10 and 200 seats
-//        * status must be either 'available' or 'occupied'
-//        * slots must be a valid Map structure
+//    - Required fields: name, block, floor, capacity, status, slots.
+//    - Allowed fields only: prevents unexpected additional fields.
+//    - Field types and domain validation:
+//        * name: string, 2-20 characters
+//        * block: string in ['A', 'C', 'D', 'F']
+//        * floor: integer 0 to 3
+//        * capacity: integer 10 to 200 seats
+//        * status: string in ['available', 'occupied']
+//        * slots: map containing time slot entries
+//        * type (optional): string in ['classroom', 'lab']
+//        * facilities (optional): list
+//        * updatedAt (optional): timestamp
 // ==============================================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Database-level integrity validator function
+    // Helper: Verify administrator identity via authenticated email
+    function isAuthorizedAdmin() {
+      return request.auth != null 
+        && request.auth.token.email == "skrubini5@gmail.com";
+    }
+
+    // Helper: Database-level integrity validator function
     function isValidClassroomData(data) {
-      return data.name is string 
-        && data.name.size() >= 2 && data.name.size() <= 20
+      return data.keys().hasAll(['name', 'block', 'floor', 'capacity', 'status', 'slots'])
+        && data.keys().hasOnly(['name', 'block', 'floor', 'type', 'capacity', 'status', 'slots', 'facilities', 'updatedAt'])
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 20
         && data.block is string && data.block in ['A', 'C', 'D', 'F']
         && (data.floor is int || data.floor is number) && data.floor >= 0 && data.floor <= 3
         && (data.capacity is int || data.capacity is number) && data.capacity >= 10 && data.capacity <= 200
@@ -37,14 +49,14 @@ service cloud.firestore {
       // PUBLIC READ: Anyone can query and read real-time classroom availability
       allow read: if true;
 
-      // RESTRICTED CREATE & UPDATE: Only verified admin + strict data integrity constraints
-      allow create, update: if request.auth != null 
-        && request.auth.token.email == "skrubini5@gmail.com"
-        && isValidClassroomData(request.resource.data);
+      // RESTRICTED CREATE: Authorized admin + complete schema & domain validation
+      allow create: if isAuthorizedAdmin() && isValidClassroomData(request.resource.data);
+
+      // RESTRICTED UPDATE: Authorized admin + resulting document must satisfy all constraints
+      allow update: if isAuthorizedAdmin() && isValidClassroomData(request.resource.data);
 
       // RESTRICTED DELETE: Only verified admin can delete records
-      allow delete: if request.auth != null 
-        && request.auth.token.email == "skrubini5@gmail.com";
+      allow delete: if isAuthorizedAdmin();
     }
 
   }

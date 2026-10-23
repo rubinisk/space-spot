@@ -6,6 +6,29 @@ Built with **plain HTML5, CSS3, vanilla JavaScript (ES modules)**, and **Google 
 
 ---
 
+## Problem Statement & Solution
+- **The Campus Challenge:** Finding an empty classroom or specialized laboratory on a large multi-block college campus typically requires physical walking between blocks and checking room doors, leading to significant wasted time and scheduling disruptions.
+- **The SpaceSpot Solution:** A centralized, real-time availability finder backed by Cloud Firestore. SpaceSpot tracks 64 campus rooms across 12 daily academic periods (8:00 AM – 6:15 PM), providing instant visibility into room capacity, amenities, and period-by-period occupancy without page reloads.
+
+---
+
+## Key Features
+- **Dual-View Campus Portal:**
+  - *Student View:* Real-time search, filters (block, floor, capacity, facilities), auto-detect active college period, and live status indicators.
+  - *Admin Portal:* Google Authentication restricted to verified administrator, 1-click period slot toggle, batch seeder, and full CRUD management.
+- **DBMS Query & Index Inspector:** An interactive evaluation panel allowing students and evaluators to execute live server-side Firestore queries with real-time `performance.now()` latency benchmarking and index analysis.
+- **Serverless & Zero DevOps:** Runs 100% serverless on Google Cloud Firestore with native WebChannel real-time delta streaming.
+
+---
+
+## Technology Stack
+- **Frontend:** Plain HTML5, CSS3 (Collegiate Crimson & White Theme), Vanilla JavaScript (ES6 Modules).
+- **Database:** Google Cloud Firestore (Firebase v10 Modular SDK).
+- **Authentication:** Firebase Authentication (Google OAuth Provider).
+- **Hosting / Local Server:** VS Code Live Server extension (no Node.js build tools, bundlers, or frameworks required).
+
+---
+
 ## Live Database & Architecture Status
 - **Google Cloud Project ID:** `spacespot-137e6`
 - **Active Documents:** 64 Monitored Classrooms & Laboratories
@@ -51,10 +74,10 @@ Use this step-by-step sequence during your presentation to demonstrate all datab
      *Theoretical Defense:* Demonstrates automated single-field B-Tree indexing.
    - **Preset 2 (Range & Sorting on Same Field):** Executes `query(collection(db, "classrooms"), where("capacity", ">=", 60), orderBy("capacity", "asc"))`.  
      *Theoretical Defense:* Demonstrates range inequality filtering combined with index ordering on the same field using a single-field B-Tree.
-   - **Preset 3 (Zig-Zag Merge Join):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"), where("floor", "==", 1))`.  
-     *Theoretical Defense:* Demonstrates Firestore's *Zig-Zag merge join* algorithm intersecting two independent B-Tree indexes without requiring a composite index.
+   - **Preset 3 (Index Merging across Multiple Fields):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"), where("floor", "==", 1))`.  
+     *Theoretical Defense:* Demonstrates Firestore index merging intersecting two independent single-field B-Tree indexes without requiring a composite index.
    - **Preset 4 (Composite Index Requirement Demo):** Executes `query(collection(db, "classrooms"), where("block", "==", "A"), where("capacity", ">=", 50))`.  
-     *Theoretical Defense:* Demonstrates when Firestore strictly requires a multi-column composite index `(block ASC, capacity ASC, __name__ ASC)` for combining equality with range inequality across different fields. Captures the Google Cloud error and displays the index creation URL.
+     *Theoretical Defense:* Demonstrates when Firestore requires a multi-column composite index `(block ASC, capacity ASC, __name__ ASC)` for combining equality with range inequality across different fields. When the index is unbuilt, captures the Google Cloud `FAILED_PRECONDITION` error with the direct index generation URL; once created in the Firebase Console, the query executes directly against the composite index.
 3. Click **"Execute Server-Side Query on Firestore"**:
    - The system measures live roundtrip latency in real time using `performance.now()`.
    - Results are rendered in a live snapshot table directly from Google Cloud servers.
@@ -94,9 +117,16 @@ Security rules are defined in [firestore.rules](./firestore.rules):
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function isAuthorizedAdmin() {
+      return request.auth != null 
+        && request.auth.token.email == "skrubini5@gmail.com";
+    }
+
     function isValidClassroomData(data) {
-      return data.name is string 
-        && data.name.size() >= 2 && data.name.size() <= 20
+      return data.keys().hasAll(['name', 'block', 'floor', 'capacity', 'status', 'slots'])
+        && data.keys().hasOnly(['name', 'block', 'floor', 'type', 'capacity', 'status', 'slots', 'facilities', 'updatedAt'])
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 20
         && data.block is string && data.block in ['A', 'C', 'D', 'F']
         && (data.floor is int || data.floor is number) && data.floor >= 0 && data.floor <= 3
         && (data.capacity is int || data.capacity is number) && data.capacity >= 10 && data.capacity <= 200
@@ -105,12 +135,15 @@ service cloud.firestore {
     }
 
     match /classrooms/{classroomId} {
+      // Public read access for classroom availability
       allow read: if true;
-      allow create, update: if request.auth != null 
-        && request.auth.token.email == "skrubini5@gmail.com"
-        && isValidClassroomData(request.resource.data);
-      allow delete: if request.auth != null 
-        && request.auth.token.email == "skrubini5@gmail.com";
+
+      // Restricted create & update: verified admin + schema & domain validation
+      allow create: if isAuthorizedAdmin() && isValidClassroomData(request.resource.data);
+      allow update: if isAuthorizedAdmin() && isValidClassroomData(request.resource.data);
+
+      // Restricted delete: verified admin only
+      allow delete: if isAuthorizedAdmin();
     }
   }
 }
@@ -205,3 +238,28 @@ In Cloud Firestore, relationships are modeled using **Data Denormalization & Nes
 | **Classroom Dataset Payload** | Network tab inspection | Inspected via browser DevTools Network tab (~26 KB uncompressed JSON). |
 
 > **Note:** Timings observed during demonstrations depend on client hardware, network bandwidth, and proximity to Google Cloud data centers; they represent live observed trials rather than guaranteed SLAs.
+---
+
+## System Limitations
+
+1. **Absence of Native SQL Joins:** Firestore does not support multi-table relational joins; relationships are modeled via document denormalization.
+2. **Composite Index Requirements:** Compound queries combining equality filters with inequality filters or ordering on distinct fields require explicitly created composite indexes.
+3. **Single-Document Write Contention:** Cloud Firestore targets a maximum sustained write rate of approximately 1 write per second per document.
+4. **No Native Arbitrary Substring Search:** Querying arbitrary substrings (e.g. `LIKE '%projector%'`) requires third-party search integrations (such as Algolia or Typesense).
+
+---
+
+## Case Study Documentation Link
+
+For the complete 11-section theoretical and empirical analysis covering Firestore architecture, Spanner TrueTime consistency, B-Tree indexing, MySQL comparative trade-offs, and security rule specifications, consult:
+- [SpaceSpot: Cloud Firestore Database Case Study Report](./case_study.md)
+
+---
+
+## References
+
+1. **Google Firebase Documentation:** [Cloud Firestore Overview](https://firebase.google.com/docs/firestore)
+2. **Google Firebase Data Model:** [Collections and Documents Guide](https://firebase.google.com/docs/firestore/data-model)
+3. **Google Firebase Indexing:** [Manage Indexes in Cloud Firestore](https://firebase.google.com/docs/firestore/query-data/indexing)
+4. **Google Firebase Security Rules:** [Get Started with Firestore Security Rules](https://firebase.google.com/docs/firestore/security/get-started)
+5. **Corbett, J. C., et al. (2013):** *Spanner: Google's Globally Distributed Database*, ACM TOCS, 31(3), 1–22.

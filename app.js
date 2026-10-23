@@ -7,7 +7,7 @@
 //    and client-side projection of embedded slots map & facilities array.
 // 3. INDEXING STRATEGY: Demonstrates automated single-field B-Tree indexing combined with
 //    zero-index reactive client streaming to prevent composite index bottlenecks.
-// 4. PERFORMANCE: Dual-engine instant loader (Direct REST fetch < 200ms initial render).
+// 4. PERFORMANCE: Dual-engine loader (Direct REST fetch for fast initial display).
 // 5. 12-Slot College Schedule integration (8:00 AM - 6:15 PM) with live active period tracker.
 // ==============================================================================
 
@@ -189,7 +189,7 @@ function setupEventListeners() {
     applyClientFiltersAndRender();
   });
 
-  // Re-filter instantly in memory whenever any dropdown changes (0ms delay)
+  // Re-filter in memory whenever dropdown changes without extra network reads
   [filterBlock, filterFloor, filterStatus, filterSort].forEach((elem) => {
     elem.addEventListener("change", () => {
       applyClientFiltersAndRender();
@@ -268,7 +268,7 @@ function updateStatsRibbon() {
 }
 
 // ==============================================================================
-// FAST DIRECT REST FETCH (INITIAL POPULATION < 200ms)
+// DIRECT REST FETCH (INITIAL POPULATION)
 // ==============================================================================
 async function fetchDirectRooms() {
   try {
@@ -336,7 +336,7 @@ function isValidCampusRoom(room) {
 }
 
 // ==============================================================================
-// IN-MEMORY FILTERING & SORTING (INDEX-FREE, 0ms LATENCY)
+// IN-MEMORY FILTERING & SORTING (CLIENT-SIDE CPU PROJECTION)
 // ==============================================================================
 function filterAndSortRooms(roomsList) {
   const selectedBlock = filterBlock.value;
@@ -429,7 +429,7 @@ function applyClientFiltersAndRender() {
 function initRealtimeClassrooms() {
   hideIndexAlert();
 
-  // Fast direct REST fetch so rooms appear in < 200ms
+  // Direct REST fetch for initial room display
   fetchDirectRooms().then(directRooms => {
     if (directRooms && directRooms.length > 0 && allRoomsCache.length === 0) {
       allRoomsCache = directRooms;
@@ -931,7 +931,7 @@ const q = query(
 // 2. Dispatch to Google Spanner via gRPC / HTTPS
 const querySnapshot = await getDocs(q);
 
-// 3. Process Result Set ($O(k)$ where k = document count)
+// 3. Process Result Set (Iterate through matching documents)
 querySnapshot.forEach((doc) => {
   console.log(doc.id, "=>", doc.data());
 });`;
@@ -1027,7 +1027,7 @@ querySnapshot.forEach((doc) => {
           <tr>
             <td colspan="6" style="padding:1rem; color:#991b1b; background:#fef2f2;">
               <strong>Google Cloud Index Requirement Detected:</strong>
-              <p style="margin: 0.4rem 0;">This query combines equality filters with inequality sorting across multiple fields. Cloud Firestore strictly requires a Composite Index for this pattern to guarantee $O(k)$ latency.</p>
+              <p style="margin: 0.4rem 0;">This query combines equality filters with range inequality filtering across multiple fields. Cloud Firestore strictly requires an explicit Composite Index for this pattern to locate matching index entries without scanning the collection.</p>
               <a href="${indexMatch[0]}" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:700; text-decoration:underline;">
                 Click here to build this Composite Index in Firebase Console &rarr;
               </a>

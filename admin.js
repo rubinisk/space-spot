@@ -393,7 +393,7 @@ function initAdminClassroomListener() {
     unsubscribeAdminListener();
   }
 
-  // Fast direct REST fetch so admin table loads in < 200ms
+  // Direct REST fetch for initial admin table display
   fetchDirectAdminRooms().then(rooms => {
     if (rooms && cachedRoomsMap.size === 0) {
       renderAdminTableFromRooms(rooms);

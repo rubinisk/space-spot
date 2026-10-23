@@ -8,3 +8,11 @@ desktop.ini
 .idea/
 *.sublime-project
 *.sublime-workspace
+
+# Security credentials & environment variables
+*.env
+*.env.local
+*.pem
+*.key
+*service-account*.json
+*credentials*.json

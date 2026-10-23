@@ -94,13 +94,16 @@ query(collection(db, "classrooms"),
       where("capacity", ">=", 50));
 ```
 
-For the fourth query, Cloud Firestore returns a `FAILED_PRECONDITION` error with a direct link to the Firebase Console to build the required composite index `(block ASC, capacity ASC, __name__ ASC)`. This cleanly illustrates the distinction between single-field indexing, merge joins, and composite index requirements.
+When the required index has not yet been generated in Firebase, Cloud Firestore returns a `FAILED_PRECONDITION` error with a direct link to the Firebase Console to build the required composite index `(block ASC, capacity ASC, __name__ ASC)`. Once generated, the query executes directly against the composite index. This cleanly illustrates the operational distinction between automatic single-field indexing, index merging, and composite index requirements.
 
 ### 3.3 Query Processing and Optimization
 Firestore uses indexes to avoid scanning every document for supported queries. The number of returned documents, index entries examined, network conditions, and query design affect latency. The claim that every Firestore query runs in constant or $O(k)$ time is not a universal guarantee, as index key lookups scale logarithmically ($O(\log N)$) before matching documents are streamed. SpaceSpot also filters its downloaded room collection in browser memory for interactive UI selections; this is client-side projection, not a new server database query.
 
-### 3.4 Transactions and Concurrency
-Firestore supports ACID transactions and atomic batched writes. Transactions can retry if concurrent changes affect documents they read. Mobile and web SDK transactions use optimistic concurrency control (OCC). A simple `updateDoc()` call atomically updates the specified document fields but is not the same as a multi-document transaction. Firestore server reads and queries are strongly consistent; cached or offline results must be identified separately.
+### 3.4 Transactions, Concurrency, and Consistency
+Cloud Firestore supports ACID (Atomicity, Consistency, Isolation, Durability) transactions and atomic batched writes:
+- **Concurrency Model:** Mobile and Web client SDKs (such as SpaceSpot's JavaScript client) utilize **Optimistic Concurrency Control (OCC)**. The client reads documents without holding shared locks. If any document read during the transaction is modified by a concurrent operation before commit, the client SDK automatically aborts and retries the transaction. In contrast, server-side Admin SDKs (Node.js, Go, Java) can utilize pessimistic concurrency control and lock contention controls depending on database configuration.
+- **Batched Writes vs. Transactions:** A simple `updateDoc()` call atomically updates fields on a single document. A batched write (`writeBatch()`) commits multiple create, update, or delete operations atomically across multiple documents in a single network roundtrip (either all succeed or all fail), without requiring read preconditions. SpaceSpot demonstrates atomic batched writes during database seeding in [`seed.js`](./seed.js) to populate or reset the 64 campus records atomically.
+- **Global Strong Consistency:** Firestore server reads and queries are strongly consistent by default, linearizing all committed mutations across quorum replicas. Cached local reads or offline persistence states must be identified separately from server-verified state.
 
 ### 3.5 Scalability and Replication
 Firestore is managed and scales across infrastructure without application-managed database shards. It offers regional and multi-region database locations with different availability and durability characteristics. High write rates (greater than 1 write per second) to the same document can create contention.
