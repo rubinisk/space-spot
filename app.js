@@ -383,7 +383,7 @@ function renderRoomsFromList(roomsList, effectiveSlot = getEffectiveSlot()) {
   if (count === 0) {
     if (allRoomsCache.length === 0) {
       renderEmptyState(
-        `The classroom database is currently empty.<br>Open the <strong>Admin Portal</strong> and click <strong>"Seed Campus Database"</strong> to populate all 16 classrooms and labs.`,
+        `The classroom database is currently empty.<br>Open the <strong>Admin Portal</strong> and click <strong>"Seed Campus Database"</strong> to populate all 64 classrooms and labs.`,
         true
       );
     } else {
@@ -450,7 +450,7 @@ function initRealtimeClassrooms() {
           allRoomsCache = [];
           resultsCountText.textContent = "No classrooms in database";
           renderEmptyState(
-            `The classroom database is currently empty.<br>Open the <strong>Admin Portal</strong> and click <strong>"Seed Campus Database"</strong> to populate all 16 classrooms and labs.`,
+            `The classroom database is currently empty.<br>Open the <strong>Admin Portal</strong> and click <strong>"Seed Campus Database"</strong> to populate all 64 classrooms and labs.`,
             true
           );
           updateStatsRibbon();

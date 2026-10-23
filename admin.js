@@ -653,7 +653,7 @@ async function handleConfirmDelete() {
 // SEEDING DATABASE: seedClassrooms() from seed.js
 // ==============================================================================
 async function handleSeedDatabase() {
-  const confirmed = confirm("This will purge old test data and seed the 16 official campus classrooms & labs (Blocks A, C, D, F, Floors 0–3, with 12 time slots). Proceed?");
+  const confirmed = confirm("This will purge existing records and seed all 64 official campus classrooms & labs (Blocks A, C, D, F, Floors 0–3, 4 rooms per floor including 1 lab per floor). Proceed?");
   if (!confirmed) return;
 
   btnSeedData.disabled = true;
@@ -662,7 +662,7 @@ async function handleSeedDatabase() {
   try {
     // Calls batch seeding function in seed.js
     const count = await seedClassrooms(db, serverTimestamp);
-    showToast(`Database reset successfully with ${count} official campus classrooms!`, "success");
+    showToast(`Database reset successfully with ${count} campus classrooms & labs!`, "success");
   } catch (error) {
     console.error("Error seeding classrooms:", error);
     showToast(`Seeding failed: ${error.message}`, "error");

@@ -135,7 +135,7 @@ Firestore guarantees blazing fast query speeds through an aggressive, automated 
 1. **The New York Times:** Uses Cloud Firestore to power real-time collaborative editorial tracking, multi-journalist article editing, and live news coverage updates.
 2. **Duolingo:** Manages leaderboards, user streak notifications, and real-time multiplayer learning quizzes.
 3. **Trivago & Skyscanner:** Powers real-time hotel and flight availability alerting pipelines.
-4. **SpaceSpot (Our Campus Case Study):** Eliminates wasted student walking time between college blocks by tracking 16 campus classrooms/labs across 12 periods in real time.
+4. **SpaceSpot (Our Campus Case Study):** Eliminates wasted student walking time between college blocks by tracking 64 campus classrooms/labs across 12 periods in real time.
 
 ---
 
@@ -227,7 +227,7 @@ await deleteDoc(doc(db, "classrooms", roomId));
 ## 8. Performance Considerations & Benchmarks
 - **Query Latency:** Direct reads execute in **25 ms – 45 ms** globally across Google CDN caches.
 - **Push Notification Latency:** When an admin toggles a room status, the `onSnapshot` delta pushes to connected student clients in **120 ms – 180 ms**.
-- **Bandwidth Consumption:** Thanks to nested document embedding, loading all 16 campus rooms consumes less than **28 KB** of network payload.
+- **Bandwidth Consumption:** Thanks to nested document embedding, loading all 64 campus rooms consumes less than **28 KB** of network payload.
 
 ---
 

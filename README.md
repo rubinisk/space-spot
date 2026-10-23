@@ -114,15 +114,13 @@ Collection name: **`classrooms`**
 | `updatedAt` | timestamp | Server timestamp of last edit | `serverTimestamp()` |
 
 ### Blocks & Room Numbering Specification
-- **6 Total Blocks:** A, B, C, D, E, F.
-  - **Classroom / Lab Blocks:** `A`, `C`, `D`, `F`
-  - **Staff Room Blocks (Excluded):** `B`, `E`
-- **4 Floors & Room Codes:**
-  - **Ground Floor (Floor 0):** `102`, `103`, `104` *(101 does not exist)*
-  - **1st Floor (Floor 1):** `201`, `203`, `204` *(202 does not exist)*
-  - **2nd Floor (Floor 2):** `301`, `302`, `304` *(303 does not exist)*
-  - **3rd Floor (Floor 3):** `401`, `402`, `403` *(404 does not exist)*
-- **3–4 rooms per block**, including dedicated departmental laboratories (`🔬 Lab`).
+- **Campus Blocks (4 Academic Blocks):** `A`, `C`, `D`, `F` *(Blocks B and E are Staff Rooms and excluded)*.
+- **4 Rooms Per Floor, 1 Laboratory Per Floor (64 Total Rooms):**
+  - **Ground Floor (Floor 0):** `102`, `103` *(Lab)*, `104`, `105` *(Room 101 does not exist)*
+  - **1st Floor (Floor 1):** `201`, `203`, `204` *(Lab)*, `205` *(Room 202 does not exist)*
+  - **2nd Floor (Floor 2):** `301`, `302`, `304`, `305` *(Lab)* *(Room 303 does not exist)*
+  - **3rd Floor (Floor 3):** `401`, `402` *(Lab)*, `403`, `405` *(Room 404 does not exist)*
+- **Total Campus Capacity:** 4 blocks x 16 rooms = 64 rooms (48 Classrooms + 16 Laboratories).
 
 ### 12 College Time Slots Schedule
 
@@ -135,7 +133,7 @@ Collection name: **`classrooms`**
 | **Slot 4** | 10:45 AM – 11:35 AM | Period 4 |
 | **Slot 5** | 11:35 AM – 12:25 PM | Period 5 |
 | **Slot 6** | 12:25 PM – 1:15 PM | Period 6 |
-| **Slot 7** | 1:15 PM – 2:05 PM | **Lunch Break Slot** 🍱 |
+| **Slot 7** | 1:15 PM – 2:05 PM | **Lunch Break Period** |
 | **Slot 8** | 2:05 PM – 2:55 PM | Period 8 |
 | **Slot 9** | 2:55 PM – 3:45 PM | Period 9 |
 | **Slot 10** | 3:45 PM – 4:35 PM | Period 10 |
