@@ -5,8 +5,8 @@
 // 1. READ OPERATION (CRUD): Real-Time Snapshot Listener (onSnapshot) on collection "classrooms".
 // 2. NOSQL JOIN EQUIVALENT: Solves multi-table relational joins via document denormalization 
 //    and client-side projection of embedded slots map & facilities array.
-// 3. INDEXING STRATEGY: Demonstrates automated single-field B-Tree indexing and index merging,
-//    complemented by real-time client streaming and in-memory projection.
+// 3. INDEXING & RETRIEVAL STRATEGY: Automated single-field B-Tree indexing on document fields;
+//    Firestore real-time document listeners with client-side filtering for the small classroom dataset.
 // 4. DATA RETRIEVAL: Direct REST fetch for initial room display followed by active onSnapshot subscription.
 // 5. 12-Slot College Schedule integration (8:00 AM - 6:15 PM) with live active period tracker.
 // ==============================================================================
@@ -327,7 +327,7 @@ function isValidCampusRoom(room) {
 
   // Exclude non-existent room numbers
   const parts = name.split("-");
-  const num = parts.length > 1 ? parts[1].trim() : "";
+  const num = parts.length > 1 ? parts[1].trim() : name.replace(/^[A-Z]-?/i, "").trim();
   if (num === "101" || num === "202" || num === "303" || num === "404") {
     return false;
   }

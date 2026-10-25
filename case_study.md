@@ -94,7 +94,12 @@ query(collection(db, "classrooms"),
       where("capacity", ">=", 50));
 ```
 
-Depending on whether the composite index has already been configured in the database, this query pattern either executes directly against an existing composite index or returns a `FAILED_PRECONDITION` error with a direct link to the Firebase Console to build `(block ASC, capacity ASC, __name__ ASC)`. This cleanly illustrates the operational distinction between automatic single-field indexing, index merging, and composite index requirements.
+Cloud Firestore query and indexing characteristics demonstrated by these presets:
+- **Automated Single-Field Indexing:** Firestore automatically maintains single-field B-Tree indexes for every field in a document, supporting basic equality, range, and sorting operations without manual indexing (Queries 1 and 2).
+- **Index Merging:** For multi-field equality filters (Query 3), Firestore can intersect independent single-field B-Tree indexes via index merging, avoiding the requirement of an explicit composite index under default configurations.
+- **Composite Index Requirements:** Compound queries combining equality filters with inequality filters or multiple sort directions across distinct fields (Query 4) may require an explicitly configured multi-column composite index `(block ASC, capacity ASC, __name__ ASC)`.
+- **Conditional Missing-Index Error:** A missing-index error (`FAILED_PRECONDITION`) occurs only when the required composite index is unavailable in the database. When unindexed, Firestore generates an error response containing a direct link to the Firebase Console to build the required index.
+- **Execution Upon Index Creation:** Once the composite index has been generated and reaches the `Ready` status, the query executes successfully and streams the matching document set directly.
 
 ### 3.3 Query Processing and Optimization
 Firestore uses indexes to avoid scanning every document for supported queries. The number of returned documents, index entries examined, network conditions, and query design affect latency. The claim that every Firestore query runs in constant or $O(k)$ time is not a universal guarantee, as index key lookups scale logarithmically ($O(\log N)$) before matching documents are streamed. SpaceSpot also filters its downloaded room collection in browser memory for interactive UI selections; this is client-side projection, not a new server database query.

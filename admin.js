@@ -12,7 +12,7 @@
 //    - READ: Real-time onSnapshot queries
 //    - UPDATE: updateDoc for modal edits & individual slot toggles
 //    - DELETE: deleteDoc with confirmation dialog
-// 5. Batch Seeding: Loads 10 sample classrooms with full 12-slot schedules.
+// 5. Batch Seeding: Loads 64 campus classrooms & laboratories across 4 academic blocks with full 12-slot schedules.
 // ==============================================================================
 
 import { 
@@ -38,6 +38,7 @@ import {
 import { 
   collection, 
   addDoc, 
+  setDoc, 
   doc, 
   updateDoc, 
   deleteDoc, 
@@ -330,7 +331,7 @@ function isValidCampusRoom(room) {
 
   // Exclude non-existent room numbers (101, 202, 303, 404)
   const parts = name.split("-");
-  const num = parts.length > 1 ? parts[1].trim() : "";
+  const num = parts.length > 1 ? parts[1].trim() : name.replace(/^[A-Z]-?/i, "").trim();
   if (num === "101" || num === "202" || num === "303" || num === "404") {
     return false;
   }
@@ -603,10 +604,11 @@ async function handleClassroomFormSubmit(e) {
       await updateDoc(docRef, roomData);
       showToast(`Classroom "${name}" updated successfully`, "success");
     } else {
-      // CREATE OPERATION: addDoc to create new classroom document
-      const classroomsCollection = collection(db, "classrooms");
-      await addDoc(classroomsCollection, roomData);
-      showToast(`Classroom "${name}" added successfully`, "success");
+      // CREATE OPERATION: setDoc with custom document ID matching classroom number (e.g., D301, C301)
+      const docId = name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      const docRef = doc(db, "classrooms", docId);
+      await setDoc(docRef, roomData);
+      showToast(`Classroom "${name}" added successfully (ID: ${docId})`, "success");
     }
 
     closeClassroomModal();

@@ -1823,7 +1823,9 @@ export async function seedClassrooms(db, serverTimestamp) {
     const insertBatch = writeBatch(db);
     const chunk = sampleClassrooms.slice(i, i + 400);
     for (const room of chunk) {
-      const newDocRef = doc(classroomsCollection);
+      // Use classroom number as the Document ID (e.g., D301, C301, A102)
+      const docId = (room.id || room.name).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      const newDocRef = doc(classroomsCollection, docId);
       insertBatch.set(newDocRef, {
         ...room,
         updatedAt: serverTimestamp()
